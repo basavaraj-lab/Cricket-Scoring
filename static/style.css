@@ -1,0 +1,29 @@
+ #nav-logo img{
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+
+    }
+    #nav_bar {
+        background-color: #f1f1f1;
+        height: 50px;
+        padding: 10px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        /* justify-content: center; */
+        gap: 40px;
+        text-align: space-around;
+    }
+
+    #nav_bar a {
+        margin-right: 10px;
+        text-decoration: none;
+        text-align: space-evenly;
+
+    }
+
+    #home-content {
+        margin: 20px;
+    }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>admin-matches</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+    <style>
+     #match {
+        height: auto;
+        width: 300px;
+        margin-top: 20px;
+        border: 0.5px solid #ccc;
+        padding: 20px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        text-align: space-between;
+        gap: calc(10px);
+        flex-direction: column;
+        align-items: center;
+           }
+
+    </style>
+
+<body>
+    <div id="nav_bar">
+        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
+        <a href="/home">Home</a>
+        <a href="/matches">Matches</a>
+        <a href="/Team">Teams</a>
+        <a href="/table">Table</a>
+        <a href="/status">Status</a>
+    </div>
+
+    <div id="home-content">
+        <h3>Matches</h3>
+        <div id="mat-preview">matches preview</div>
+    </div>
+
+    <h1>Current Match</h1>
+    <div id="match"></div>
+
+</body>
+<script>
+    // Fetch data using the exact same keys you used to save them ("TeamA" and "TeamB")
+    const matchTeamA = localStorage.getItem("TeamA");
+    const matchTeamB = localStorage.getItem("TeamB");
+    
+    const matchDiv = document.getElementById("match");
+
+    if (matchTeamA && matchTeamB) {
+        // If we have teams saved, show them
+        matchDiv.innerHTML = `
+            <h2>${matchTeamA} VS ${matchTeamB}</h2>
+            <button id="startMatchBtn" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Start Match</button>
+        `;
+        
+        // Add event listener to the new button
+        document.getElementById("startMatchBtn").addEventListener("click", function() {
+            // Replace with what should happen when "Start Match" is clicked
+            alert("Match between " +   matchTeamA + " and " +  matchTeamB + " has started!");
+            // e.g., window.location.href = "scoring.html";
+        });
+    } else {
+        // If no match is found
+        matchDiv.innerHTML = "<p>No active match. Please go to the Teams tab to set up a new match.</p>";
+    }
+
+
+
+</script>
+</html>

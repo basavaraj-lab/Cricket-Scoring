@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cricket scoring - admin</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<style>
+    /* Team.html specific styles */
+    #addTeamBtn {
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    #addTeamBtn:hover {
+        background-color: #218838;
+    }
+    
+hidden Div{
+    display: none;
+    margin-left: 30px;
+    display: flex;
+    
+    flex-direction: column;
+}
+    #teamForm {
+        margin-top: 20px;
+        border: 0.5px solid #ccc;
+        padding: 20px;
+        border-radius: 5px;
+        width: 300px;
+    }
+    #teamForm input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    #submitBtn {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    #submitBtn:hover {
+        background-color: #0069d9;
+    }
+    #result {
+        height: auto;
+        width: 300px;
+        margin-top: 20px;
+        border: 0.5px solid #ccc;
+        padding: 20px;
+        border-radius: 5px;
+        width: 300px;
+    }
+</style>
+
+<body>
+    <div id="nav_bar">
+        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
+        <a href="/home">Home</a>
+        <a href="/matches">Matches</a>
+        <a href="/Team">Teams</a>
+        <a href="/table">Table</a>
+        <a href="/status">Status</a>
+    </div>
+
+    <div id="home-content">
+        <h3>Add your team</h3>
+        <button id="addTeamBtn">Add Team</button>
+    </div>
+    
+    <div id="teamForm" hidden>
+       <span>Your Team Name:</span> <input type="text" name="Your Team Name" id="teamA" placeholder="Enter your team name">
+        <br><br>
+        <span>Another Team Name:</span>
+        <input type="text" name="another team" id="teamB" placeholder="Enter another team name">
+        <br><br>
+        <button id="submitBtn">Submit</button>
+    </div>
+
+    <div id="result" hidden>
+        <p>Welcome to the Now Match!</p>
+        <div id="matchResult"></div>
+        <button id="newMatchBtn" style="height: auto;" width="50%" background-color="#28a745"; onclick="">New Match</button>
+    </div>
+
+</body>
+
+<script>
+    const addTeamBtn = document.getElementById("addTeamBtn");
+    const hiddenDiv = document.getElementById("teamForm");
+    addTeamBtn.addEventListener("click", function() {
+        hiddenDiv.removeAttribute("hidden");
+        hiddenDiv.style.display = "block";
+    });
+
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.addEventListener("click", function(){
+
+        const TeamA = document.getElementById("teamA").value;
+        const TeamB = document.getElementById("teamB").value;
+        console.log("Team 1:", TeamA);
+        console.log("Team 2:", TeamB);
+        document.getElementById("matchResult").innerHTML = `<h2>${TeamA} vs ${TeamB}</h2>`;
+
+        document.getElementById("result").removeAttribute("hidden");
+        document.getElementById("result").style.display = "block";
+        hiddenDiv.style.display = "none";
+    });
+     
+    const newMatchBtn = document.getElementById("newMatchBtn");
+    newMatchBtn.addEventListener("click", function(){
+       
+        //save data
+        localStorage.setItem("TeamA", document.getElementById("teamA").value);
+        localStorage.setItem("TeamB", document.getElementById("teamB").value);
+        //redirect to match page
+        window.location.href = "/matches";
+    });
+
+</script>
+</html>
