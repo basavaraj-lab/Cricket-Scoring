@@ -3,22 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>admin-status</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <title>Live Scorecard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; }
+        .card { max-width: 700px; margin: 20px auto; background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; }
+        .match-title { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 4px; }
+        .meta { text-align: center; font-size: 13px; color: #666; margin-bottom: 6px; }
+        .innings-label { background: #1d3557; color: white; padding: 6px 12px; border-radius: 6px; margin: 18px 0 8px; font-size: 14px; font-weight: bold; }
+        .target-box { text-align: center; font-size: 13px; color: #555; margin: 4px 0 10px; background:#fff9c4; padding:6px; border-radius:5px; }
+        h4 { background: #495057; color: white; padding: 5px 10px; border-radius: 5px; margin: 12px 0 6px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #e9ecef; }
+        th, td { padding: 7px 10px; text-align: center; border-bottom: 1px solid #eee; }
+        td:first-child, th:first-child { text-align: left; }
+        .dismissal { font-size: 11px; color: #888; display: block; }
+        .active-bat { font-weight: bold; color: #1d6a54; }
+        .no-data { text-align: center; color: #aaa; padding: 30px; font-size: 15px; }
+        .btn-row { display:flex; gap:8px; justify-content:center; margin-top:14px; }
+        .btn-row button { padding:8px 18px; border:none; border-radius:6px; cursor:pointer; font-size:13px; color:white; }
+        .saved-match { border:1px solid #eee; border-radius:8px; padding:10px 14px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+        .saved-match .info { color:#333; }
+        .saved-match .del-btn { background:#dc3545; color:white; border:none; border-radius:5px; padding:5px 12px; cursor:pointer; font-size:12px; }
+        .saved-match .del-btn:hover { background:#b02a37; }
+    </style>
 </head>
 <body>
-    <div id="nav_bar">
-        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
-        <a href="/home">Home</a>
-        <a href="/matches">Matches</a>
-        <a href="/Team">Teams</a>
-        <a href="/table">Table</a>
-        <a href="/status">Status</a>
-    </div>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo"></div>
+    <a href="/home">Home</a>
+    <a href="/matches">Matches</a>
+    <a href="/Team">Teams</a>
+    <a href="/table">Table</a>
+    <a href="/status">Status</a>
+    <a href="/stats">Overall Stats</a>
+</div>
 
-    <div id="home-content">
-        <h3>Status</h3>
-        <div id="status-preview">status preview</div>
-    </div>
+<div id="scorecard-root"></div>
+
+<script>
+function sr(r,b)    { return b>0 ? ((r/b)*100).toFixed(1) : "0.0"; }
+function eco(r,b)   { return b>0 ? (r/(b/6)).toFixed(2) : "-"; }
+function ovsStr(b)  { return `${Math.floor(b/6)}.${b%6}`; }
+
+function battingTable(players, stats, strikerIdx, nonStrikerIdx) {
+    let rows = "";
+    players.forEach((name, i) => {
+        const s = stats[i] ?? stats[String(i)];
+        if (!s) return;
+        const active = (i===strikerIdx || i===nonStrikerIdx) && s.active;
+        const status = s.dismissal
+            ? `<span class="dismissal">${s.dismissal}</span>`
+            : (active ? `<span class="dismissal">batting*</span>` : "");
+        rows += `<tr class="${active?'active-bat':''}">
+            <td>${name}${status}</td>
+            <td>${s.runs}</td><td>${s.balls}</td>
+            <td>${s.fours}</td><td>${s.sixes}</td>
+            <td>${sr(s.runs,s.balls)}</td>
+        </tr>`;
+    });
+    return `<table>
+        <thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+        <tbody>${rows||`<tr><td colspan="6" style="color:#aaa;text-align:center">No data</td></tr>`}</tbody>
+    </table>`;
+}
+
+function bowlingTable(players, stats) {
+    let rows = "";
+    players.forEach((name, i) => {
+        const s = stats[i] ?? stats[String(i)];
+        if (!s || s.balls===0) return;
+        rows += `<tr>
+            <td>${name}</td><td>${ovsStr(s.balls)}</td>
+            <td>${s.runs}</td><td>${s.wickets}</td>
+            <td>${eco(s.runs,s.balls)}</td>
+        </tr>`;
+    });
+    return `<table>
+        <thead><tr><th>Bowler</th><th>Ov</th><th>R</th><th>W</th><th>Eco</th></tr></thead>
+        <tbody>${rows||`<tr><td colspan="5" style="color:#aaa;text-align:center">No data</td></tr>`}</tbody>
+    </table>`;
+}
+
+function render() {
+    const root = document.getElementById("scorecard-root");
+    const raw  = localStorage.getItem("scorecard");
+    if (!raw) {
+        root.innerHTML = `<div class="card"><div class="no-data">No active match. Start a match first.</div></div>`;
+        return;
+    }
+    const d = JSON.parse(raw);
+    const { teamA, teamB, innings, battingTeamName, bowlingTeamName,
+            score, wickets, overs, balls, battingPlayers, bowlingPlayers,
+            batterStats, bowlerStats, strikerIdx, nonStrikerIdx,
+            firstInningsScore, inn1BatterStats, inn1BowlerStats,
+            inn1BattingTeam, inn1BowlingTeam, inn1BattingPlayers, inn1BowlingPlayers } = d;
+
+    const totalBalls = overs*6 + (balls%6);
+    const crr = totalBalls>0 ? (score/(totalBalls/6)).toFixed(2) : "0.00";
+
+    let targetHtml = "";
+    if (innings===2 && firstInningsScore>0) {
+        const need = (firstInningsScore+1) - score;
+        targetHtml = `<div class="target-box">Target: <b>${firstInningsScore+1}</b> &nbsp;|&nbsp; Need: <b>${Math.max(need,0)}</b> runs &nbsp;|&nbsp; CRR: <b>${crr}</b></div>`;
+    } else {
+        targetHtml = `<div class="meta">CRR: ${crr}</div>`;
+    }
+
+    let inn1Html = "";
+    if (innings===2 && inn1BattingPlayers?.length) {
+        inn1Html = `
+            <div class="innings-label">1st Innings — ${inn1BattingTeam}: ${firstInningsScore}</div>
+            <h4>🏏 Batting — ${inn1BattingTeam}</h4>
+            ${battingTable(inn1BattingPlayers, inn1BatterStats||{}, -1, -1)}
+            <h4>🎳 Bowling — ${inn1BowlingTeam}</h4>
+            ${bowlingTable(inn1BowlingPlayers, inn1BowlerStats||{})}`;
+    }
+
+    root.innerHTML = `
+        <div class="card">
+            <div class="match-title">🏏 ${teamA} vs ${teamB} — Live</div>
+            ${inn1Html}
+            <div class="innings-label">${innings===2?'2nd':'1st'} Innings — ${battingTeamName}: ${score}/${wickets} (${overs}.${balls%6})</div>
+            ${targetHtml}
+            <h4>🏏 Batting — ${battingTeamName}</h4>
+            ${battingTable(battingPlayers, batterStats, strikerIdx, nonStrikerIdx)}
+            <h4>🎳 Bowling — ${bowlingTeamName}</h4>
+            ${bowlingTable(bowlingPlayers, bowlerStats)}
+            <div class="btn-row">
+                <button style="background:#1d3557" onclick="render()">⟳ Refresh</button>
+                <button style="background:#dc3545" onclick="deleteCurrent()">🗑 Delete Current Match</button>
+                <button style="background:#495057" onclick="window.location.href='/stats'">🏅 Overall Stats</button>
+            </div>
+        </div>
+
+        <div class="card" id="saved-section"></div>`;
+
+    loadSavedMatches();
+}
+
+function deleteCurrent() {
+    if (!confirm("Delete current match scorecard?")) return;
+    localStorage.removeItem("scorecard");
+    render();
+}
+
+async function loadSavedMatches() {
+    const sec = document.getElementById("saved-section");
+    if (!sec) return;
+    let matches;
+    try {
+        const res = await fetch("/api/matches");
+        matches = await res.json();
+    } catch { sec.innerHTML = ""; return; }
+
+    if (!matches.length) { sec.innerHTML = ""; return; }
+
+    sec.innerHTML = `
+        <h4 style="margin-top:0">📁 Saved Matches</h4>
+        ${matches.map(m => `
+            <div class="saved-match">
+                <div class="info">
+                    <b>#${m.match_id}</b> &nbsp; ${m.teamA} vs ${m.teamB}
+                    &nbsp;|&nbsp; ${m.inn1BattingTeam||m.battingTeamName}: ${m.firstInningsScore||0}
+                    &nbsp;|&nbsp; ${m.battingTeamName}: ${m.score}/${m.wickets}
+                    <span style="color:#888;font-size:11px"> &nbsp;${m.saved_at||''}</span>
+                </div>
+                <button class="del-btn" onclick="deleteSaved(${m.match_id})">🗑 Delete</button>
+            </div>`).join('')}`;
+}
+
+async function deleteSaved(id) {
+    if (!confirm(`Delete match #${id}?`)) return;
+    await fetch(`/api/delete-match/${id}`, { method: "DELETE" });
+    loadSavedMatches();
+}
+</script>
 </body>
 </html>

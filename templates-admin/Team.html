@@ -5,128 +5,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cricket scoring - admin</title>
     <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+
+        .card {
+            width: 320px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .card input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .card button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 4px;
+            color: white;
+        }
+
+        #addTeamBtn      { background: #28a745; width: auto; padding: 10px 20px; border-radius: 5px; border: none; color: white; cursor: pointer; }
+        .btn-primary     { background: #007bff; }
+        .btn-success     { background: #28a745; }
+        .btn-secondary   { background: #6c757d; width: auto !important; padding: 8px 14px !important; margin-top: 0 !important; }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .player-row span {
+            min-width: 20px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .player-row input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 0 !important;
+        }
+
+        .player-row button {
+            width: auto !important;
+            padding: 4px 10px !important;
+            margin-top: 0 !important;
+            background: #dc3545;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        #member-count { font-size: 13px; color: #888; margin-bottom: 8px; }
+
+        .hidden { display: none; }
+
+        #result-card h2 { text-align: center; margin: 0 0 10px; }
+        .team-summary { font-size: 13px; color: #444; margin: 4px 0; }
+
+        #home-content h3 { margin-top: 0; 
+        display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+        margin-left: auto; margin-right: auto; justify-content: center;
+        }
+        #addTeamBtn { margin-left: 8px; 
+          display: inline-block; background: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;  
+          margin-left: auto; margin-right: auto; display: block;
+        }
+    </style>
 </head>
-<style>
-    /* Team.html specific styles */
-    #addTeamBtn {
-        padding: 10px 20px;
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    #addTeamBtn:hover {
-        background-color: #218838;
-    }
-    
-hidden Div{
-    display: none;
-    margin-left: 30px;
-    display: flex;
-    
-    flex-direction: column;
-}
-    #teamForm {
-        margin-top: 20px;
-        border: 0.5px solid #ccc;
-        padding: 20px;
-        border-radius: 5px;
-        width: 300px;
-    }
-    #teamForm input {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    #submitBtn {
-        width: 100%;
-        padding: 10px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    #submitBtn:hover {
-        background-color: #0069d9;
-    }
-    #result {
-        height: auto;
-        width: 300px;
-        margin-top: 20px;
-        border: 0.5px solid #ccc;
-        padding: 20px;
-        border-radius: 5px;
-        width: 300px;
-    }
-</style>
-
 <body>
-    <div id="nav_bar">
-        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
-        <a href="/home">Home</a>
-        <a href="/matches">Matches</a>
-        <a href="/Team">Teams</a>
-        <a href="/table">Table</a>
-        <a href="/status">Status</a>
-    </div>
 
-    <div id="home-content">
-        <h3>Add your team</h3>
-        <button id="addTeamBtn">Add Team</button>
-    </div>
-    
-    <div id="teamForm" hidden>
-       <span>Your Team Name:</span> <input type="text" name="Your Team Name" id="teamA" placeholder="Enter your team name">
-        <br><br>
-        <span>Another Team Name:</span>
-        <input type="text" name="another team" id="teamB" placeholder="Enter another team name">
-        <br><br>
-        <button id="submitBtn">Submit</button>
-    </div>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo"></div>
+    <a href="/home">Home</a>
+    <a href="/matches">Matches</a>
+    <a href="/Team">Teams</a>
+    <a href="/table">Table</a>
+    <a href="/status">Status</a>
+</div>
 
-    <div id="result" hidden>
-        <p>Welcome to the Now Match!</p>
-        <div id="matchResult"></div>
-        <button id="newMatchBtn" style="height: auto;" width="50%" background-color="#28a745"; onclick="">New Match</button>
-    </div>
+<div id="home-content">
+    <h3>Add your team</h3>
+    <button id="addTeamBtn">Add Team</button>
+</div>
 
-</body>
+<!-- Step 1: Team Names -->
+<div id="team-name-card" class="card hidden">
+    <h3 style="margin-top:0">Team Names</h3>
+    <input type="text" id="teamA" placeholder="Team A name">
+    <input type="text" id="teamB" placeholder="Team B name">
+    <button class="btn-primary" id="submitNamesBtn">Next →</button>
+</div>
+
+<!-- Step 2: Team A Members -->
+<div id="teamA-members-card" class="card hidden">
+    <h3 style="margin-top:0">Add Players — <span id="teamA-label"></span></h3>
+    <div id="member-count" id="countA">0 / 11 players</div>
+    <div id="playersA-list"></div>
+    <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="btn-secondary" id="addPlayerA">Add Player</button>
+    </div>
+    <button class="btn-primary" id="nextToTeamB" style="margin-top:12px">Next → <span id="teamB-label-btn"></span></button>
+</div>
+
+<!-- Step 3: Team B Members -->
+<div id="teamB-members-card" class="card hidden">
+    <h3 style="margin-top:0">Add Players — <span id="teamB-label"></span></h3>
+    <div id="countB">0 / 11 players</div>
+    <div id="playersB-list"></div>
+    <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="btn-secondary" id="addPlayerB">Add Player</button>
+    </div>
+    <button class="btn-success" id="createMatchBtn" style="margin-top:12px">✔ Create Match</button>
+</div>
+
+<!-- Step 4: Result -->
+<div id="result-card" class="card hidden">
+    <h2 id="match-title"></h2>
+    <div id="teamA-summary" class="team-summary"></div>
+    <div id="teamB-summary" class="team-summary"></div>
+    <button class="btn-success" id="goToMatchBtn" style="margin-top:14px">▶ Go to Match</button>
+</div>
 
 <script>
-    const addTeamBtn = document.getElementById("addTeamBtn");
-    const hiddenDiv = document.getElementById("teamForm");
-    addTeamBtn.addEventListener("click", function() {
-        hiddenDiv.removeAttribute("hidden");
-        hiddenDiv.style.display = "block";
+    let teamAName = "", teamBName = "";
+
+    document.getElementById("addTeamBtn").addEventListener("click", () => {
+        show("team-name-card").style.display = "block";
     });
 
-    const submitBtn = document.getElementById("submitBtn");
-    submitBtn.addEventListener("click", function(){
+    // Step 1 → Step 2
+    document.getElementById("submitNamesBtn").addEventListener("click", () => {
+        teamAName = document.getElementById("teamA").value.trim();
+        teamBName = document.getElementById("teamB").value.trim();
+        if (!teamAName || !teamBName) { alert("Enter both team names"); return; }
 
-        const TeamA = document.getElementById("teamA").value;
-        const TeamB = document.getElementById("teamB").value;
-        console.log("Team 1:", TeamA);
-        console.log("Team 2:", TeamB);
-        document.getElementById("matchResult").innerHTML = `<h2>${TeamA} vs ${TeamB}</h2>`;
-
-        document.getElementById("result").removeAttribute("hidden");
-        document.getElementById("result").style.display = "block";
-        hiddenDiv.style.display = "none";
+        document.getElementById("teamA-label").textContent = teamAName;
+        document.getElementById("teamB-label-btn").textContent = teamBName;
+        show("teamA-members-card");
+        updateCount("playersA-list", "member-count");
     });
-     
-    const newMatchBtn = document.getElementById("newMatchBtn");
-    newMatchBtn.addEventListener("click", function(){
-       
-        //save data
-        localStorage.setItem("TeamA", document.getElementById("teamA").value);
-        localStorage.setItem("TeamB", document.getElementById("teamB").value);
-        //redirect to match page
+
+    // Add player buttons
+    document.getElementById("addPlayerA").addEventListener("click", () => addPlayer("playersA-list", "member-count"));
+    document.getElementById("addPlayerB").addEventListener("click", () => addPlayer("playersB-list", "countB"));
+
+    // Step 2 → Step 3
+    document.getElementById("nextToTeamB").addEventListener("click", () => {
+        document.getElementById("teamB-label").textContent = teamBName;
+        show("teamB-members-card");
+        updateCount("playersB-list", "countB");
+    });
+
+    // Step 3 → Step 4
+    document.getElementById("createMatchBtn").addEventListener("click", () => {
+        const playersA = getPlayers("playersA-list");
+        const playersB = getPlayers("playersB-list");
+
+        localStorage.setItem("TeamA", teamAName);
+        localStorage.setItem("TeamB", teamBName);
+        localStorage.setItem("PlayersA", JSON.stringify(playersA));
+        localStorage.setItem("PlayersB", JSON.stringify(playersB));
+
+        document.getElementById("match-title").textContent = `${teamAName} vs ${teamBName}`;
+        document.getElementById("teamA-summary").textContent =
+            `${teamAName}: ${playersA.length ? playersA.join(", ") : "No players added"}`;
+        document.getElementById("teamB-summary").textContent =
+            `${teamBName}: ${playersB.length ? playersB.join(", ") : "No players added"}`;
+
+        show("result-card");
+    });
+
+    document.getElementById("goToMatchBtn").addEventListener("click", () => {
         window.location.href = "/matches";
     });
 
+    // --- Helpers ---
+    function addPlayer(listId, countId) {
+        const list = document.getElementById(listId);
+        const current = list.querySelectorAll(".player-row").length;
+        if (current >= 11) { alert("Maximum 11 players allowed"); return; }
+
+        const row = document.createElement("div");
+        row.className = "player-row";
+        row.innerHTML = `
+            <span>${current + 1}.</span>
+            <input type="text" placeholder="Player name">
+            <button onclick="removePlayer(this, '${listId}', '${countId}')">✕</button>
+        `;
+        list.appendChild(row);
+        updateCount(listId, countId);
+    }
+
+    function removePlayer(btn, listId, countId) {
+        btn.closest(".player-row").remove();
+        // renumber
+        document.getElementById(listId).querySelectorAll(".player-row").forEach((r, i) => {
+            r.querySelector("span").textContent = (i + 1) + ".";
+        });
+        updateCount(listId, countId);
+    }
+
+    function updateCount(listId, countId) {
+        const n = document.getElementById(listId).querySelectorAll(".player-row").length;
+        document.getElementById(countId).textContent = `${n} / 11 players`;
+    }
+
+    function getPlayers(listId) {
+        return [...document.getElementById(listId).querySelectorAll("input")]
+            .map(i => i.value.trim()).filter(Boolean);
+    }
+
+    function show(id) {
+        ["team-name-card","teamA-members-card","teamB-members-card","result-card"]
+            .forEach(c => document.getElementById(c).classList.add("hidden"));
+        document.getElementById(id).classList.remove("hidden");
+    }
 </script>
+</body>
 </html>

@@ -1,0 +1,319 @@
+[
+  {
+    "teamA": "aaa",
+    "teamB": "bbb",
+    "innings": 2,
+    "battingTeamName": "aaa",
+    "bowlingTeamName": "bbb",
+    "score": 88,
+    "wickets": 1,
+    "overs": 6,
+    "balls": 38,
+    "battingPlayers": [
+      "a",
+      "b",
+      "d",
+      "g"
+    ],
+    "bowlingPlayers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "batterStats": {
+      "0": {
+        "runs": 38,
+        "balls": 18,
+        "fours": 4,
+        "sixes": 2,
+        "dismissal": "Run Out",
+        "active": false
+      },
+      "1": {
+        "runs": 16,
+        "balls": 6,
+        "fours": 2,
+        "sixes": 1,
+        "dismissal": "",
+        "active": true
+      },
+      "2": {
+        "runs": 32,
+        "balls": 14,
+        "fours": 4,
+        "sixes": 2,
+        "dismissal": "",
+        "active": true
+      }
+    },
+    "bowlerStats": {
+      "0": {
+        "runs": 49,
+        "wickets": 1,
+        "balls": 20
+      },
+      "1": {
+        "runs": 25,
+        "wickets": 0,
+        "balls": 12
+      },
+      "2": {
+        "runs": 14,
+        "wickets": 0,
+        "balls": 6
+      },
+      "3": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      },
+      "4": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      }
+    },
+    "strikerIdx": 0,
+    "nonStrikerIdx": 2,
+    "bowlerIdx": 0,
+    "firstInningsScore": 83,
+    "inn1BatterStats": {
+      "0": {
+        "runs": 25,
+        "balls": 10,
+        "fours": 4,
+        "sixes": 1,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "1": {
+        "runs": 15,
+        "balls": 7,
+        "fours": 3,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "2": {
+        "runs": 14,
+        "balls": 11,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "",
+        "active": true
+      },
+      "3": {
+        "runs": 7,
+        "balls": 4,
+        "fours": 1,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "4": {
+        "runs": 19,
+        "balls": 8,
+        "fours": 1,
+        "sixes": 2,
+        "dismissal": "LBW",
+        "active": false
+      }
+    },
+    "inn1BowlerStats": {
+      "0": {
+        "runs": 43,
+        "wickets": 2,
+        "balls": 22
+      },
+      "1": {
+        "runs": 40,
+        "wickets": 2,
+        "balls": 18
+      },
+      "2": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      },
+      "3": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      }
+    },
+    "inn1BattingTeam": "bbb",
+    "inn1BowlingTeam": "aaa",
+    "inn1BattingPlayers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "inn1BowlingPlayers": [
+      "a",
+      "b",
+      "d",
+      "g"
+    ],
+    "match_id": 1,
+    "saved_at": "2026-06-14T21:54:40"
+  },
+  {
+    "teamA": "aaa",
+    "teamB": "bbb",
+    "innings": 2,
+    "battingTeamName": "bbb",
+    "bowlingTeamName": "aaa",
+    "score": 1,
+    "wickets": 4,
+    "overs": 0,
+    "balls": 5,
+    "battingPlayers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "bowlingPlayers": [
+      "a",
+      "b",
+      "d",
+      "g"
+    ],
+    "batterStats": {
+      "0": {
+        "runs": 1,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "",
+        "active": true
+      },
+      "1": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "2": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "3": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "4": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      }
+    },
+    "bowlerStats": {
+      "0": {
+        "runs": 1,
+        "wickets": 4,
+        "balls": 5
+      }
+    },
+    "strikerIdx": 4,
+    "nonStrikerIdx": 0,
+    "bowlerIdx": 0,
+    "firstInningsScore": 14,
+    "inn1BatterStats": {
+      "0": {
+        "runs": 7,
+        "balls": 8,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "1": {
+        "runs": 7,
+        "balls": 7,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "",
+        "active": true
+      },
+      "2": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      },
+      "3": {
+        "runs": 0,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0,
+        "dismissal": "Bowled",
+        "active": false
+      }
+    },
+    "inn1BowlerStats": {
+      "0": {
+        "runs": 8,
+        "wickets": 3,
+        "balls": 11
+      },
+      "1": {
+        "runs": 6,
+        "wickets": 0,
+        "balls": 6
+      },
+      "2": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      },
+      "3": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      },
+      "4": {
+        "runs": 0,
+        "wickets": 0,
+        "balls": 0
+      }
+    },
+    "inn1BattingTeam": "aaa",
+    "inn1BowlingTeam": "bbb",
+    "inn1BattingPlayers": [
+      "a",
+      "b",
+      "d",
+      "g"
+    ],
+    "inn1BowlingPlayers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "match_id": 2,
+    "saved_at": "2026-06-14T21:55:49"
+  }
+]

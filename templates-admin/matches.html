@@ -4,71 +4,491 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>admin-matches</title>
-    <link rel="stylesheet" href="../static/style.css">
-</head>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-     #match {
-        height: auto;
-        width: 300px;
-        margin-top: 20px;
-        border: 0.5px solid #ccc;
-        padding: 20px;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        text-align: space-between;
-        gap: calc(10px);
-        flex-direction: column;
-        align-items: center;
-           }
-
+        body { font-family: Arial, sans-serif; }
+        #match {
+            width: 380px; margin: 24px auto;
+            border: 1px solid #ccc; padding: 24px;
+            border-radius: 10px; text-align: center;
+        }
+        #match h2 { margin: 0 0 16px; font-size: 20px; }
+        #match h3 { margin: 0 0 12px; }
+        #match p  { margin: 6px 0; }
+        #match button {
+            padding: 10px 20px; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px; color: white;
+            background: #1d3557; margin: 4px;
+        }
+        #match select {
+            padding: 7px 10px; border-radius: 6px;
+            border: 1px solid #ccc; font-size: 14px; margin: 4px;
+        }
+        #match label { margin-right: 6px; font-size: 14px; }
+        #match hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
+        .coin {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, #f6c90e, #e2a900);
+            margin: 14px auto; display: flex; align-items: center;
+            justify-content: center; font-size: 26px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); user-select: none;
+        }
+        #toss-result { font-size: 15px; font-weight: bold; color: #2a9d8f; margin: 10px 0; min-height: 22px; }
+        .scoreboard { font-size: 26px; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
+        .player-info { font-size: 13px; color: #444; margin-bottom: 4px; }
+        .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+        .score-btn { padding: 14px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
+        .btn-6 { background: #e63946; } .btn-4 { background: #2a9d8f; }
+        .btn-3 { background: #457b9d; } .btn-2 { background: #6a994e; }
+        .btn-1 { background: #e9c46a; color: #333; } .btn-0 { background: #adb5bd; color: #333; }
+        .wicket-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+        .wicket-btn { padding: 11px 0; font-size: 13px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; background: #c1121f; color: white; }
+        .wide-btn   { grid-column: span 2; background: #7b2d8b; }
+        .noball-btn { grid-column: span 2; background: #e76f51; }
+        .ball-log { font-size: 12px; color: #666; margin-top: 8px; min-height: 20px; }
+        .history-btns { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+        .history-btns button { background: #495057; }
+        .history-btns button:disabled { background: #ccc; cursor: default; }
+        .select-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; text-align: left; }
+        .select-row label { flex: 1; }
+        .select-row select { flex: 1.5; }
     </style>
-
+</head>
 <body>
-    <div id="nav_bar">
-        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
-        <a href="/home">Home</a>
-        <a href="/matches">Matches</a>
-        <a href="/Team">Teams</a>
-        <a href="/table">Table</a>
-        <a href="/status">Status</a>
-    </div>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo"></div>
+    <a href="/home">Home</a>
+    <a href="/matches">Matches</a>
+    <a href="/Team">Teams</a>
+    <a href="/table">Table</a>
+    <a href="/status">Status</a>
+</div>
+<div id="home-content"><h3>Matches</h3></div>
+<div id="match"></div>
 
-    <div id="home-content">
-        <h3>Matches</h3>
-        <div id="mat-preview">matches preview</div>
-    </div>
-
-    <h1>Current Match</h1>
-    <div id="match"></div>
-
-</body>
 <script>
-    // Fetch data using the exact same keys you used to save them ("TeamA" and "TeamB")
-    const matchTeamA = localStorage.getItem("TeamA");
-    const matchTeamB = localStorage.getItem("TeamB");
-    
-    const matchDiv = document.getElementById("match");
+const teamA = localStorage.getItem("TeamA") || "Team A";
+const teamB = localStorage.getItem("TeamB") || "Team B";
+const playersA = JSON.parse(localStorage.getItem("PlayersA") || "[]");
+const playersB = JSON.parse(localStorage.getItem("PlayersB") || "[]");
+const pA = playersA.length ? playersA : Array.from({length:11},(_,i)=>`${teamA} P${i+1}`);
+const pB = playersB.length ? playersB : Array.from({length:11},(_,i)=>`${teamB} P${i+1}`);
 
-    if (matchTeamA && matchTeamB) {
-        // If we have teams saved, show them
-        matchDiv.innerHTML = `
-            <h2>${matchTeamA} VS ${matchTeamB}</h2>
-            <button id="startMatchBtn" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Start Match</button>
-        `;
-        
-        // Add event listener to the new button
-        document.getElementById("startMatchBtn").addEventListener("click", function() {
-            // Replace with what should happen when "Start Match" is clicked
-            alert("Match between " +   matchTeamA + " and " +  matchTeamB + " has started!");
-            // e.g., window.location.href = "scoring.html";
-        });
-    } else {
-        // If no match is found
-        matchDiv.innerHTML = "<p>No active match. Please go to the Teams tab to set up a new match.</p>";
+let tossWinner = null;
+let battingTeamName = "", bowlingTeamName = "";
+let battingPlayers = [], bowlingPlayers = [];
+let strikerIdx = 0, nonStrikerIdx = 1, bowlerIdx = 0;
+let score = 0, wickets = 0, balls = 0, overs = 0;
+let overBalls = [];
+let innings = 1;
+let firstInningsScore = 0;
+let inn1BatterStats = {}, inn1BowlerStats = {};
+let inn1BattingTeam = "", inn1BowlingTeam = "";
+let inn1BattingPlayers = [], inn1BowlingPlayers = [];
+
+// batterStats[idx] = { runs, balls, fours, sixes, dismissal, active }
+let batterStats = {};
+// bowlerStats[idx]  = { runs, wickets, balls }
+let bowlerStats = {};
+
+const undoStack = [], redoStack = [];
+const M = document.getElementById("match");
+
+/* ── helpers ─────────────────────────── */
+function bs(idx)  { return batterStats[idx]  || (batterStats[idx]  = {runs:0,balls:0,fours:0,sixes:0,dismissal:"",active:true}); }
+function bwl(idx) { return bowlerStats[idx]  || (bowlerStats[idx]  = {runs:0,wickets:0,balls:0}); }
+
+function strikerSR() {
+    const b = bs(strikerIdx);
+    return b.balls > 0 ? ((b.runs/b.balls)*100).toFixed(1) : "0.0";
+}
+function nonStrikerSR() {
+    const b = bs(nonStrikerIdx);
+    return b.balls > 0 ? ((b.runs/b.balls)*100).toFixed(1) : "0.0";
+}
+
+/* ── save scorecard to localStorage ─── */
+function saveScorecard() {
+    const data = {
+        teamA, teamB, innings,
+        battingTeamName, bowlingTeamName,
+        score, wickets, overs, balls,
+        battingPlayers, bowlingPlayers,
+        batterStats: JSON.parse(JSON.stringify(batterStats)),
+        bowlerStats:  JSON.parse(JSON.stringify(bowlerStats)),
+        strikerIdx, nonStrikerIdx, bowlerIdx,
+        firstInningsScore,
+        inn1BatterStats: JSON.parse(JSON.stringify(inn1BatterStats)),
+        inn1BowlerStats:  JSON.parse(JSON.stringify(inn1BowlerStats)),
+        inn1BattingTeam, inn1BowlingTeam,
+        inn1BattingPlayers: [...inn1BattingPlayers],
+        inn1BowlingPlayers: [...inn1BowlingPlayers]
+    };
+    localStorage.setItem("scorecard", JSON.stringify(data));
+}
+
+/* ── STEP 1 ─────────────────────────── */
+function stepMatchCard() {
+    M.innerHTML = `<h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><button id="startBtn">▶ Start Match</button>`;
+    document.getElementById("startBtn").onclick = stepToss;
+}
+
+/* ── STEP 2 : Toss ──────────────────── */
+function stepToss() {
+    M.innerHTML = `
+        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
+        <h3>🪙 Toss</h3>
+        <p>Who calls the toss?</p>
+        <div style="margin:8px 0">
+            <input type="radio" id="callA" name="caller" value="A"><label for="callA">${teamA}</label>
+            <input type="radio" id="callB" name="caller" value="B"><label for="callB">${teamB}</label>
+        </div>
+        <p>Choose:</p>
+        <div style="margin:8px 0">
+            <input type="radio" id="chooseHead" name="coinChoice" value="Head"><label for="chooseHead">🌕 Head</label>
+            <input type="radio" id="chooseTail" name="coinChoice" value="Tail"><label for="chooseTail">🌑 Tail</label>
+        </div>
+        <div class="coin" id="coinEl">🪙</div>
+        <div id="toss-result"></div>
+        <button id="flipBtn">Flip Coin</button>`;
+
+    document.getElementById("flipBtn").onclick = () => {
+        const caller = document.querySelector('input[name="caller"]:checked');
+        const choice = document.querySelector('input[name="coinChoice"]:checked');
+        if (!caller || !choice) { alert("Select who calls and Head / Tail"); return; }
+        const callerName = caller.value === "A" ? teamA : teamB;
+        const result = Math.random() < 0.5 ? "Head" : "Tail";
+        document.getElementById("coinEl").textContent = result === "Head" ? "🌕" : "🌑";
+        const won = choice.value === result;
+        tossWinner = won ? callerName : (callerName === teamA ? teamB : teamA);
+        document.getElementById("toss-result").textContent = `Coin: ${result} — ${tossWinner} won the toss!`;
+        document.getElementById("flipBtn").disabled = true;
+        setTimeout(stepBatBowlChoice, 1200);
+    };
+}
+
+/* ── STEP 3 : Bat / Bowl ────────────── */
+function stepBatBowlChoice() {
+    M.innerHTML = `
+        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
+        <h3>🏆 ${tossWinner} won the toss!</h3>
+        <p>Choose to:</p>
+        <button id="batBtn">🏏 Bat</button>
+        <button id="bowlBtn">🎳 Bowl</button>`;
+    document.getElementById("batBtn").onclick  = () => setupTeams("bat");
+    document.getElementById("bowlBtn").onclick = () => setupTeams("bowl");
+}
+
+function setupTeams(choice) {
+    const batting = choice === "bat" ? tossWinner : (tossWinner === teamA ? teamB : teamA);
+    const bowling = batting === teamA ? teamB : teamA;
+    battingTeamName = batting; bowlingTeamName = bowling;
+    battingPlayers = batting === teamA ? [...pA] : [...pB];
+    bowlingPlayers  = bowling === teamA ? [...pA] : [...pB];
+    stepSelectPlayers();
+}
+
+/* ── STEP 4 : Select players ─────────── */
+function stepSelectPlayers() {
+    const bOpts  = battingPlayers.map((p,i)=>`<option value="${i}">${p}</option>`).join("");
+    const bwOpts = bowlingPlayers.map((p,i)=>`<option value="${i}">${p}</option>`).join("");
+    M.innerHTML = `
+        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
+        <h3>Select Players</h3>
+        <p style="font-size:13px;color:#555">Batting: <b>${battingTeamName}</b> | Bowling: <b>${bowlingTeamName}</b></p>
+        <div class="select-row"><label>Striker:</label><select id="sel-striker">${bOpts}</select></div>
+        <div class="select-row"><label>Non-Striker:</label><select id="sel-nonstriker">${bOpts}</select></div>
+        <div class="select-row"><label>Bowler:</label><select id="sel-bowler">${bwOpts}</select></div>
+        <button id="startScoringBtn" style="margin-top:8px;background:#28a745">▶ Start Scoring</button>`;
+    document.getElementById("sel-nonstriker").selectedIndex = 1;
+    document.getElementById("startScoringBtn").onclick = () => {
+        strikerIdx    = +document.getElementById("sel-striker").selectedIndex;
+        nonStrikerIdx = +document.getElementById("sel-nonstriker").selectedIndex;
+        bowlerIdx     = +document.getElementById("sel-bowler").selectedIndex;
+        resetStats();
+        bs(strikerIdx).active = true;
+        bs(nonStrikerIdx).active = true;
+        stepScoring();
+    };
+}
+
+/* ── STEP 5 : Scoring ────────────────── */
+function stepScoring() {
+    M.innerHTML = `
+        <div class="scoreboard" id="scoreboard">0/0 (0.0)</div>
+        <div class="player-info">
+            🏏 <span id="striker-name">-</span> <span id="striker-score">0(0)</span>
+            &nbsp;|&nbsp;
+            <span id="nonstriker-name">-</span> <span id="nonstriker-score">0(0)</span>
+        </div>
+        <div class="player-info">🎳 <span id="bowler-name">-</span> <span id="bowler-stats">0-0-0</span></div>
+        <hr>
+        <div class="score-grid">
+            <button class="score-btn btn-6" onclick="addRuns(6)">6</button>
+            <button class="score-btn btn-4" onclick="addRuns(4)">4</button>
+            <button class="score-btn btn-3" onclick="addRuns(3)">3</button>
+            <button class="score-btn btn-2" onclick="addRuns(2)">2</button>
+            <button class="score-btn btn-1" onclick="addRuns(1)">1</button>
+            <button class="score-btn btn-0" onclick="addRuns(0)">0</button>
+        </div>
+        <div class="wicket-grid">
+            <button class="wicket-btn" onclick="addWicket('Bowled')">Bowled</button>
+            <button class="wicket-btn" onclick="addWicket('Caught Out')">Caught Out</button>
+            <button class="wicket-btn" onclick="addWicket('LBW')">LBW</button>
+            <button class="wicket-btn" onclick="addWicket('Run Out')">Run Out</button>
+            <button class="wicket-btn" onclick="addWicket('Hit Wicket')">Hit Wicket</button>
+            <button class="wicket-btn wide-btn"   onclick="addExtra('Wide')">Wide +1</button>
+            <button class="wicket-btn noball-btn" onclick="addExtra('No Ball')">No Ball +1</button>
+        </div>
+        <div class="ball-log" id="ball-log">This over: —</div>
+        <div class="history-btns">
+            <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
+            <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
+        </div>`;
+    updateScoreboard();
+}
+
+/* ── STEP 6 : Change bowler ──────────── */
+function stepChangeBowler() {
+    const prev = bowlerIdx;
+    const opts = bowlingPlayers.map((p,i) => {
+        const s = bwl(i);
+        const ov = Math.floor(s.balls/6) + (s.balls%6 > 0 ? `.${s.balls%6}` : ".0");
+        const eco = s.balls > 0 ? ((s.runs/(s.balls/6))).toFixed(1) : "-";
+        const disabled = i === prev ? "disabled" : "";
+        const label = i === prev ? " (prev)" : `  ${ov}ov  ${s.wickets}W-${s.runs}R`;
+        return `<option value="${i}" ${disabled}>${p}${label}</option>`;
+    }).join("");
+
+    M.innerHTML = `
+        <div class="scoreboard">${score}/${wickets}  (${overs}.0)</div><hr>
+        <h3>Over ${overs} complete!</h3>
+        <p>Select next bowler:</p>
+        <select id="sel-bowler-change">${opts}</select><br>
+        <button id="confirmBowler" style="margin-top:12px;background:#28a745">▶ Continue</button>`;
+
+    const sel = document.getElementById("sel-bowler-change");
+    for (let i = 0; i < sel.options.length; i++) {
+        if (!sel.options[i].disabled) { sel.selectedIndex = i; break; }
     }
+    document.getElementById("confirmBowler").onclick = () => {
+        bowlerIdx = +document.getElementById("sel-bowler-change").value;
+        stepScoring(); updateScoreboard();
+    };
+}
 
+/* ── STEP 7 : Next batter ────────────── */
+function isAllOut() {
+    const used = Object.keys(batterStats).map(Number);
+    const fresh = battingPlayers.map((_,i) => i).filter(i => !used.includes(i));
+    return wickets >= 10 || fresh.length === 0;
+}
 
+function stepInningsBreak() {
+    firstInningsScore   = score;
+    inn1BatterStats     = JSON.parse(JSON.stringify(batterStats));
+    inn1BowlerStats     = JSON.parse(JSON.stringify(bowlerStats));
+    inn1BattingTeam     = battingTeamName;
+    inn1BowlingTeam     = bowlingTeamName;
+    inn1BattingPlayers  = [...battingPlayers];
+    inn1BowlingPlayers  = [...bowlingPlayers];
+    saveScorecard();
 
+    M.innerHTML = `
+        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
+        <h3>🏏 End of 1st Innings</h3>
+        <p><b>${battingTeamName}</b> scored <b>${score}/${wickets}</b> (${overs}.${balls%6} ov)</p>
+        <p>Target for <b>${bowlingTeamName}</b>: <b>${score + 1}</b></p><hr>
+        <button id="startInn2Btn" style="background:#28a745">▶ Start 2nd Innings</button>`;
+
+    document.getElementById("startInn2Btn").onclick = () => {
+        // swap teams
+        [battingTeamName, bowlingTeamName] = [bowlingTeamName, battingTeamName];
+        [battingPlayers, bowlingPlayers]   = [bowlingPlayers, battingPlayers];
+        innings = 2;
+        score = wickets = balls = overs = 0;
+        overBalls = []; batterStats = {}; bowlerStats = {};
+        undoStack.length = 0; redoStack.length = 0;
+        stepSelectPlayers();
+    };
+}
+
+function stepMatchResult() {
+    saveScorecard();
+    saveMatchToServer();   // persist permanently
+    let resultText;
+    if (score > firstInningsScore) {
+        const wl = 10 - wickets;
+        resultText = `🏆 <b>${battingTeamName}</b> won by ${wl} wicket${wl !== 1 ? 's' : ''}!`;
+    } else if (score === firstInningsScore) {
+        resultText = `🤝 Match Tied!`;
+    } else {
+        const rd = firstInningsScore - score + 1;
+        resultText = `🏆 <b>${bowlingTeamName}</b> won by ${rd} run${rd !== 1 ? 's' : ''}!`;
+    }
+    M.innerHTML = `
+        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
+        <h3>Match Over!</h3>
+        <p style="font-size:17px">${resultText}</p><hr>
+        <p style="font-size:13px;color:#555">1st Innings: <b>${inn1BattingTeam}</b> — ${firstInningsScore}</p>
+        <p style="font-size:13px;color:#555">2nd Innings: <b>${battingTeamName}</b> — ${score}/${wickets} (${overs}.${balls%6} ov)</p>
+        <button onclick="window.location.href='/status'" style="margin-top:12px;background:#1d3557">📊 View Scorecard</button>
+        <button onclick="window.location.href='/stats'" style="margin-top:4px;background:#495057">🏅 Overall Stats</button>`;
+}
+
+function saveMatchToServer() {
+    const raw = localStorage.getItem("scorecard");
+    if (!raw) return;
+    fetch("/api/save-match", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: raw
+    }).catch(() => {});
+}
+
+function stepNextBatter() {
+    if (isAllOut()) {
+        if (innings === 1) { stepInningsBreak(); }
+        else               { stepMatchResult(); }
+        return;
+    }
+    const used = Object.keys(batterStats).map(Number);
+    const fresh = battingPlayers.map((p,i) => ({p,i})).filter(({i}) => !used.includes(i));
+    const opts = fresh.map(({p,i}) => `<option value="${i}">${p}</option>`).join("");
+
+    M.innerHTML = `
+        <div class="scoreboard">${score}/${wickets}  (${overs}.${balls%6})</div><hr>
+        <h3>Wicket! 🏏 Select next batter</h3>
+        <select id="sel-next">${opts}</select><br>
+        <button id="confirmNext" style="margin-top:12px;background:#28a745">Continue</button>`;
+
+    document.getElementById("confirmNext").onclick = () => {
+        const newIdx = +document.getElementById("sel-next").value;
+        strikerIdx = newIdx;
+        bs(newIdx).active = true;
+        stepScoring(); updateScoreboard();
+    };
+}
+
+/* ── Scoring logic ───────────────────── */
+function addRuns(r) {
+    saveState();
+    score += r; balls++;
+    const bat = bs(strikerIdx);
+    bat.runs += r; bat.balls++;
+    if (r === 4) bat.fours++;
+    if (r === 6) bat.sixes++;
+    const bw = bwl(bowlerIdx);
+    bw.runs += r; bw.balls++;
+    overBalls.push(r === 0 ? "·" : r);
+    if (r % 2 !== 0) swapStrike();
+    if (innings === 2 && score > firstInningsScore) {
+        checkOver(); updateScoreboard(); saveScorecard();
+        stepMatchResult(); return;
+    }
+    checkOver(); updateScoreboard(); saveScorecard();
+}
+
+function addWicket(type) {
+    saveState();
+    wickets++; balls++;
+    const bat = bs(strikerIdx);
+    bat.balls++; bat.dismissal = type; bat.active = false;
+    const bw = bwl(bowlerIdx);
+    bw.wickets++; bw.balls++;
+    overBalls.push("W");
+    checkOver(); updateScoreboard(); saveScorecard();
+    stepNextBatter();
+}
+
+function addExtra(type) {
+    saveState();
+    score++;
+    bwl(bowlerIdx).runs++;
+    overBalls.push(type === "Wide" ? "Wd" : "Nb");
+    if (innings === 2 && score > firstInningsScore) {
+        updateScoreboard(); saveScorecard();
+        stepMatchResult(); return;
+    }
+    updateScoreboard(); saveScorecard(); refreshBallLog();
+}
+
+function checkOver() {
+    const legal = overBalls.filter(b => b !== "Wd" && b !== "Nb").length;
+    if (legal === 6) { overs++; overBalls = []; swapStrike(); stepChangeBowler(); }
+    else refreshBallLog();
+}
+
+function refreshBallLog() {
+    const el = document.getElementById("ball-log");
+    if (el) el.textContent = "This over: " + (overBalls.length ? overBalls.join(" · ") : "—");
+}
+
+function swapStrike() {
+    [strikerIdx, nonStrikerIdx] = [nonStrikerIdx, strikerIdx];
+}
+
+function updateScoreboard() {
+    const el = id => document.getElementById(id);
+    if (!el("scoreboard")) return;
+    el("scoreboard").textContent = `${score}/${wickets}  (${overs}.${balls%6})`;
+
+    const bat1 = bs(strikerIdx), bat2 = bs(nonStrikerIdx);
+    el("striker-name").textContent     = battingPlayers[strikerIdx] + "*";
+    el("striker-score").textContent    = `${bat1.runs}(${bat1.balls}) SR:${strikerSR()}`;
+    el("nonstriker-name").textContent  = battingPlayers[nonStrikerIdx];
+    el("nonstriker-score").textContent = `${bat2.runs}(${bat2.balls})`;
+
+    const bw = bwl(bowlerIdx);
+    const bowlOv = `${Math.floor(bw.balls/6)}.${bw.balls%6}`;
+    const eco    = bw.balls > 0 ? ((bw.runs/(bw.balls/6))).toFixed(1) : "-";
+    el("bowler-name").textContent  = bowlingPlayers[bowlerIdx];
+    el("bowler-stats").textContent = `${bowlOv}ov  ${bw.wickets}W-${bw.runs}R  Eco:${eco}`;
+
+    syncHistoryBtns(); refreshBallLog();
+}
+
+function resetStats() {
+    score = wickets = balls = overs = 0;
+    overBalls = []; batterStats = {}; bowlerStats = {};
+    undoStack.length = 0; redoStack.length = 0;
+}
+
+/* ── Undo / Redo ─────────────────────── */
+function snapshot() {
+    return {
+        score, wickets, balls, overs,
+        strikerIdx, nonStrikerIdx, bowlerIdx,
+        overBalls: [...overBalls],
+        batterStats: JSON.parse(JSON.stringify(batterStats)),
+        bowlerStats:  JSON.parse(JSON.stringify(bowlerStats))
+    };
+}
+function saveState()     { undoStack.push(snapshot()); redoStack.length = 0; }
+function restoreState(s) {
+    ({score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx} = s);
+    overBalls   = [...s.overBalls];
+    batterStats = JSON.parse(JSON.stringify(s.batterStats));
+    bowlerStats = JSON.parse(JSON.stringify(s.bowlerStats));
+}
+function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(snapshot()); restoreState(undoStack.pop());
+    stepScoring(); updateScoreboard(); saveScorecard();
+}
+function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(snapshot()); restoreState(redoStack.pop());
+    stepScoring(); updateScoreboard(); saveScorecard();
+}
+function syncHistoryBtns() {
+    const u = document.getElementById("undoBtn");
+    const r = document.getElementById("redoBtn");
+    if (u) u.disabled = !undoStack.length;
+    if (r) r.disabled = !redoStack.length;
+}
+
+stepMatchCard();
 </script>
+</body>
 </html>

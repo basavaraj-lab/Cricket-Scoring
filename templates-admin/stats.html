@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overall Stats</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; }
+        .page { max-width: 760px; margin: 20px auto; }
+        .card { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .page-title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 16px; color: #1d3557; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-box { background: #1d3557; color: white; border-radius: 8px; padding: 14px; text-align: center; }
+        .stat-box .val { font-size: 28px; font-weight: bold; }
+        .stat-box .lbl { font-size: 12px; opacity: .8; margin-top: 4px; }
+        h3 { background: #1d3557; color: white; padding: 7px 14px; border-radius: 7px; font-size: 15px; margin: 0 0 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #e9ecef; }
+        th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #eee; }
+        td:first-child, th:first-child { text-align: left; }
+        .badge { display:inline-block; background:#ffd700; color:#333; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:bold; margin-left:4px; }
+        .badge-blue { background:#2a9d8f; color:white; }
+        .badge-red  { background:#e63946; color:white; }
+        .no-data { text-align:center; color:#aaa; padding:24px; }
+        .highlight-row td { background: #fffde7; font-weight: bold; }
+        .section-tabs { display:flex; gap:8px; margin-bottom:14px; }
+        .section-tabs button { padding:7px 16px; border:none; border-radius:6px; cursor:pointer; font-size:13px; background:#dee2e6; color:#333; }
+        .section-tabs button.active { background:#1d3557; color:white; }
+    </style>
+</head>
+<body>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo"></div>
+    <a href="/home">Home</a>
+    <a href="/matches">Matches</a>
+    <a href="/Team">Teams</a>
+    <a href="/table">Table</a>
+    <a href="/status">Status</a>
+    <a href="/stats">Overall Stats</a>
+</div>
+
+<div class="page">
+    <div class="page-title">🏅 Overall Tournament Stats</div>
+    <div id="root"><div class="card"><div class="no-data">Loading stats…</div></div></div>
+</div>
+
+<script>
+async function load() {
+    const root = document.getElementById("root");
+    let data;
+    try {
+        const res = await fetch("/api/stats");
+        data = await res.json();
+    } catch(e) {
+        root.innerHTML = `<div class="card"><div class="no-data">Could not load stats. Make sure the server is running.</div></div>`;
+        return;
+    }
+
+    const { total_matches, batters, bowlers } = data;
+
+    if (!batters.length && !bowlers.length) {
+        root.innerHTML = `<div class="card"><div class="no-data">No completed matches yet.</div></div>`;
+        return;
+    }
+
+    // summary top numbers
+    const topRuns   = batters[0]?.runs ?? 0;
+    const topName   = batters[0]?.name ?? "-";
+    const total100s = batters.reduce((s,b) => s + b.hundreds, 0);
+    const total50s  = batters.reduce((s,b) => s + b.fifties, 0);
+    const topWkts   = bowlers[0]?.wickets ?? 0;
+    const topBowler = bowlers[0]?.name ?? "-";
+
+    // most 4s & 6s
+    const most4s = [...batters].sort((a,b) => b.fours - a.fours)[0];
+    const most6s = [...batters].sort((a,b) => b.sixes - a.sixes)[0];
+
+    // best SR (min 20 balls)
+    const bestSR = [...batters].filter(b=>b.balls>=20).sort((a,b)=>b.sr-a.sr)[0];
+
+    root.innerHTML = `
+        <div class="card">
+            <div class="summary-grid">
+                <div class="stat-box"><div class="val">${total_matches}</div><div class="lbl">Matches Played</div></div>
+                <div class="stat-box"><div class="val">${topRuns}</div><div class="lbl">Highest Runs (${topName})</div></div>
+                <div class="stat-box"><div class="val">${topWkts}</div><div class="lbl">Most Wickets (${topBowler})</div></div>
+            </div>
+            <div class="summary-grid">
+                <div class="stat-box" style="background:#2a9d8f"><div class="val">${total100s}</div><div class="lbl">Total 100s</div></div>
+                <div class="stat-box" style="background:#e9c46a;color:#333"><div class="val">${total50s}</div><div class="lbl">Total 50s</div></div>
+                <div class="stat-box" style="background:#e63946"><div class="val">${most6s?.sixes??0}</div><div class="lbl">Most 6s (${most6s?.name??'-'})</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🏏 Batting Stats</h3>
+            <table>
+                <thead>
+                    <tr><th>Batter</th><th>Inn</th><th>Runs</th><th>Balls</th><th>SR</th><th>4s</th><th>6s</th><th>50s</th><th>100s</th></tr>
+                </thead>
+                <tbody>
+                    ${batters.map((b, idx) => `
+                        <tr class="${idx===0?'highlight-row':''}">
+                            <td>${b.name}
+                                ${b.hundreds>0 ? `<span class="badge">💯×${b.hundreds}</span>` : ''}
+                                ${b.fifties>0  ? `<span class="badge badge-blue">50×${b.fifties}</span>` : ''}
+                            </td>
+                            <td>${b.innings}</td>
+                            <td><b>${b.runs}</b></td>
+                            <td>${b.balls}</td>
+                            <td>${b.sr}</td>
+                            <td>${b.fours}</td>
+                            <td>${b.sixes}</td>
+                            <td>${b.fifties}</td>
+                            <td>${b.hundreds}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>🎳 Bowling Stats</h3>
+            <table>
+                <thead>
+                    <tr><th>Bowler</th><th>Inn</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Eco</th></tr>
+                </thead>
+                <tbody>
+                    ${bowlers.map((bw, idx) => `
+                        <tr class="${idx===0?'highlight-row':''}">
+                            <td>${bw.name}</td>
+                            <td>${bw.innings}</td>
+                            <td>${bw.overs}</td>
+                            <td>${bw.runs}</td>
+                            <td><b>${bw.wickets}</b></td>
+                            <td>${bw.eco}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>🌟 Highlights</h3>
+            <table>
+                <tbody>
+                    <tr><td>🏆 Highest Runs</td><td><b>${batters[0]?.name??'-'}</b></td><td>${batters[0]?.runs??0} runs</td></tr>
+                    <tr><td>⚡ Best Strike Rate <span style="font-size:11px;color:#888">(min 20 balls)</span></td><td><b>${bestSR?.name??'-'}</b></td><td>${bestSR?.sr??'-'}</td></tr>
+                    <tr><td>💯 Most 100s</td><td><b>${[...batters].sort((a,b)=>b.hundreds-a.hundreds)[0]?.name??'-'}</b></td><td>${[...batters].sort((a,b)=>b.hundreds-a.hundreds)[0]?.hundreds??0}</td></tr>
+                    <tr><td>🥈 Most 50s</td><td><b>${[...batters].sort((a,b)=>b.fifties-a.fifties)[0]?.name??'-'}</b></td><td>${[...batters].sort((a,b)=>b.fifties-a.fifties)[0]?.fifties??0}</td></tr>
+                    <tr><td>🟦 Most 4s</td><td><b>${most4s?.name??'-'}</b></td><td>${most4s?.fours??0}</td></tr>
+                    <tr><td>🔴 Most 6s</td><td><b>${most6s?.name??'-'}</b></td><td>${most6s?.sixes??0}</td></tr>
+                    <tr><td>🎳 Most Wickets</td><td><b>${bowlers[0]?.name??'-'}</b></td><td>${bowlers[0]?.wickets??0}</td></tr>
+                    <tr><td>💨 Best Economy</td><td><b>${[...bowlers].sort((a,b)=>a.eco-b.eco)[0]?.name??'-'}</b></td><td>${[...bowlers].sort((a,b)=>a.eco-b.eco)[0]?.eco??'-'}</td></tr>
+                </tbody>
+            </table>
+        </div>`;
+}
+
+load();
+</script>
+</body>
+</html>
