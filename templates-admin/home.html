@@ -3,51 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>admin-home</title>
+    <title>Cricket League Admin</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-    <style>
-         #nav-logo img{
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-
-    }
-    #nav_bar {
-        background-color: #f1f1f1;
-        height: 50px;
-        padding: 10px;
-        margin: auto;
-        display: flex;
-        align-items: center;
-        /* justify-content: center; */
-        gap: 40px;
-        text-align: space-around;
-    }
-
-    #nav_bar a {
-        margin-right: 10px;
-        text-decoration: none;
-        text-align: space-evenly;
-
-    }
-
-    #home-content {
-        margin: 20px;
-    }
-    </style>
 <body>
-    <div id="nav_bar">
-        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo"></div>
-        <a href="/home">Home</a>
-        <a href="/matches">Matches</a>
-        <a href="/Team">Teams</a>
-        <a href="/table">Table</a>
-        <a href="/status">Status</a>
-    </div>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5351/5351480.png'"></div>
+    <a href="/home" class="active">Home</a>
+    <a href="/matches">Live Scorer</a>
+    <a href="/Team">Teams</a>
+    <a href="/table">Table</a>
+    <a href="/status">Status Board</a>
+</div>
 
-    <p>home page for admin
-    </p>
+<div id="home-content">
+    <div class="card" style="text-align:center; padding: 4rem 2rem;">
+        <h1 style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--accent-gold);">Pro Cricket Scoring</h1>
+        <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 3rem;">
+            Real-time analytics, glassmorphic UI, and instant broadcast for your local cricket tournaments.
+        </p>
+        
+        <div style="display:flex; gap:1.5rem; justify-content:center;">
+            <button class="btn-primary" style="padding: 1rem 2rem;" onclick="location.href='/matches'">
+                ▶ Start Scoring Now
+            </button>
+            <button class="btn-secondary" style="padding: 1rem 2rem;" onclick="location.href='/Team'">
+                Manage Teams
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

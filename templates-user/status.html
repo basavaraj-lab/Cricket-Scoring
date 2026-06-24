@@ -3,22 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cricket scoring</title>
-    <link rel="stylesheet" href="../index.css/style.css">
+    <title>Live Scorecard - Viewer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
 </head>
 <body>
-    <div id="nav_bar">
-        <div id="nav-logo" ><img src="../frontend/images/nav-logo.png" alt="logo"></div>
-        <a href="index.html">Home</a>
-        <a href="match.html">Matches</a>
-        <a href="table.html">Table</a>
-        <a href="status.html">Status</a>
-    </div>
+<div id="nav_bar">
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5351/5351480.png'"></div>
+    <a href="/user/home">Home</a>
+    <a href="/user/match">Matches</a>
+    <a href="/user/status" class="active">Live Score</a>
+    <a href="/user/table">Table</a>
+</div>
 
-    <div id="home-content">
-        <h3>Status</h3>
-        <div id="status-preview">status preview</div>
+<div id="home-content">
+    <div id="match-display" class="card" style="max-width: 500px; margin: 0 auto; text-align: center;">
+        <div class="live-badge">
+            <div class="live-dot"></div> LIVE UPDATES
+        </div>
+        <div id="match-header">
+            <h2 id="teams-title">No Active Match</h2>
+            <p id="match-subtitle" style="color:var(--text-muted)">Waiting for scorer to start...</p>
+        </div>
+        
+        <div id="live-score-container" style="display:none">
+            <div class="scoreboard" id="v-score">0/0</div>
+            <div class="over-indicator" id="v-overs">0.0 Overs</div>
+            
+            <div class="player-card striker">
+                <div class="player-info">
+                    <div class="player-name" id="v-striker-name">-</div>
+                </div>
+                <div class="player-score" id="v-striker-score">0(0)</div>
+            </div>
+            
+            <div class="player-card">
+                <div class="player-name" id="v-nonstriker-name">-</div>
+                <div class="player-score" id="v-nonstriker-score">0(0)</div>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; margin-top:1.5rem; font-size:0.9rem">
+                <span>🎳 <span id="v-bowler-name">-</span></span>
+                <span id="v-bowler-stats" style="color:var(--accent-gold)">0-0 (0.0)</span>
+            </div>
+        </div>
     </div>
+</div>
 
+<script>
+let socket;
+function connectWS() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    
+    socket.onopen = () => console.log('Connected to Live Stream');
+    socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "score_update") {
+            updateUI(msg.data);
+        }
+    };
+    socket.onclose = () => setTimeout(connectWS, 2000);
+}
+connectWS();
+
+function updateUI(data) {
+    document.getElementById("live-score-container").style.display = "block";
+    document.getElementById("teams-title").textContent = `${data.teamA} vs ${data.teamB}`;
+    document.getElementById("match-subtitle").textContent = `${data.battingTeamName} is batting`;
+    
+    document.getElementById("v-score").textContent = `${data.score}/${data.wickets}`;
+    document.getElementById("v-overs").textContent = `${data.overs}.${data.balls%6} Overs`;
+    
+    const bat1 = data.batterStats[data.strikerIdx] || {runs:0, balls:0};
+    const bat2 = data.batterStats[data.nonStrikerIdx] || {runs:0, balls:0};
+    
+    document.getElementById("v-striker-name").textContent = data.battingPlayers[data.strikerIdx] + "*";
+    document.getElementById("v-striker-score").textContent = `${bat1.runs}(${bat1.balls})`;
+    
+    document.getElementById("v-nonstriker-name").textContent = data.battingPlayers[data.nonStrikerIdx];
+    document.getElementById("v-nonstriker-score").textContent = `${bat2.runs}(${bat2.balls})`;
+    
+    const bw = data.bowlerStats[data.bowlerIdx] || {runs:0, wickets:0, balls:0};
+    document.getElementById("v-bowler-name").textContent = data.bowlingPlayers[data.bowlerIdx];
+    document.getElementById("v-bowler-stats").textContent = `${bw.wickets}W - ${bw.runs}R (${Math.floor(bw.balls/6)}.${bw.balls%6})`;
+}
+</script>
 </body>
 </html>

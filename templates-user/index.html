@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cricket scoring</title>
-    <link rel="stylesheet" href="../index.css/style.css">
+    <title>Cricket Scoring - Fan View</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div id="nav_bar">
-        <div id="nav-logo" ><img src="../frontend/images/nav-logo.png" alt="logo"></div>
-        <a href="index.html">Home</a>
-        <a href="match.html">Matches</a>
-        <a href="table.html">Table</a>
-        <a href="status.html">Status</a>
+        <div id="nav-logo" ><img src="/static/images/logo.png" alt="logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5351/5351480.png'"></div>
+        <a href="/user/home" class="active">Home</a>
+        <a href="/user/match">Matches</a>
+        <a href="/user/status">Live Score</a>
+        <a href="/user/table">Table</a>
     </div>
 
     <div id="home-content">
-        <h3>Matches</h3>
-        <div id="mat-preview">matches preview</div>
+        <div class="card" style="text-align:center; padding: 3rem 1rem;">
+            <h1 style="color:var(--accent-emerald)">Welcome, Fan!</h1>
+            <p style="color:var(--text-muted); margin: 1rem 0 2rem;">Follow your favorite matches with real-time updates.</p>
+            <button class="btn-primary" onclick="location.href='/user/status'">
+                📺 View Live Scoreboard
+            </button>
+        </div>
     </div>
-
 </body>
 </html>

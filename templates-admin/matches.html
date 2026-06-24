@@ -3,70 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>admin-matches</title>
+    <title>Admin - Match Scorer</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        body { font-family: Arial, sans-serif; }
-        #match {
-            width: 380px; margin: 24px auto;
-            border: 1px solid #ccc; padding: 24px;
-            border-radius: 10px; text-align: center;
+        /* Specific adjustments for scorer view */
+        .ball-log {
+            background: rgba(0,0,0,0.2);
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+            color: var(--text-muted);
         }
-        #match h2 { margin: 0 0 16px; font-size: 20px; }
-        #match h3 { margin: 0 0 12px; }
-        #match p  { margin: 6px 0; }
-        #match button {
-            padding: 10px 20px; border: none; border-radius: 6px;
-            cursor: pointer; font-size: 14px; color: white;
-            background: #1d3557; margin: 4px;
+        .history-btns {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
         }
-        #match select {
-            padding: 7px 10px; border-radius: 6px;
-            border: 1px solid #ccc; font-size: 14px; margin: 4px;
+        .history-btns button {
+            flex: 1;
         }
-        #match label { margin-right: 6px; font-size: 14px; }
-        #match hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
-        .coin {
-            width: 72px; height: 72px; border-radius: 50%;
-            background: linear-gradient(135deg, #f6c90e, #e2a900);
-            margin: 14px auto; display: flex; align-items: center;
-            justify-content: center; font-size: 26px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2); user-select: none;
-        }
-        #toss-result { font-size: 15px; font-weight: bold; color: #2a9d8f; margin: 10px 0; min-height: 22px; }
-        .scoreboard { font-size: 26px; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
-        .player-info { font-size: 13px; color: #444; margin-bottom: 4px; }
-        .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-        .score-btn { padding: 14px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
-        .btn-6 { background: #e63946; } .btn-4 { background: #2a9d8f; }
-        .btn-3 { background: #457b9d; } .btn-2 { background: #6a994e; }
-        .btn-1 { background: #e9c46a; color: #333; } .btn-0 { background: #adb5bd; color: #333; }
-        .wicket-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
-        .wicket-btn { padding: 11px 0; font-size: 13px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; background: #c1121f; color: white; }
-        .wide-btn   { grid-column: span 2; background: #7b2d8b; }
-        .noball-btn { grid-column: span 2; background: #e76f51; }
-        .ball-log { font-size: 12px; color: #666; margin-top: 8px; min-height: 20px; }
-        .history-btns { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-        .history-btns button { background: #495057; }
-        .history-btns button:disabled { background: #ccc; cursor: default; }
-        .select-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; text-align: left; }
-        .select-row label { flex: 1; }
-        .select-row select { flex: 1.5; }
     </style>
 </head>
 <body>
 <div id="nav_bar">
-    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo"></div>
+    <div id="nav-logo"><img src="/static/images/logo.png" alt="logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5351/5351480.png'"></div>
     <a href="/home">Home</a>
-    <a href="/matches">Matches</a>
+    <a href="/matches" class="active">Live Scorer</a>
     <a href="/Team">Teams</a>
     <a href="/table">Table</a>
-    <a href="/status">Status</a>
+    <a href="/status">Status Board</a>
 </div>
-<div id="home-content"><h3>Matches</h3></div>
-<div id="match"></div>
+
+<div id="home-content">
+    <div id="match" class="card">
+        <!-- Match content will be injected here -->
+        <div class="loader">Loading Match...</div>
+    </div>
+</div>
 
 <script>
+/* ── WebSocket Setup ────────────────── */
+let socket;
+function connectWS() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    
+    socket.onopen = () => console.log('Connected to Scoring Server');
+    socket.onclose = () => {
+        console.log('Disconnected. Retrying...');
+        setTimeout(connectWS, 2000);
+    };
+}
+connectWS();
+
+function broadcastUpdate(data) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+            type: "score_update",
+            data: data
+        }));
+    }
+}
+
+/* ── State Management ───────────────── */
 const teamA = localStorage.getItem("TeamA") || "Team A";
 const teamB = localStorage.getItem("TeamB") || "Team B";
 const playersA = JSON.parse(localStorage.getItem("PlayersA") || "[]");
@@ -86,15 +86,12 @@ let inn1BatterStats = {}, inn1BowlerStats = {};
 let inn1BattingTeam = "", inn1BowlingTeam = "";
 let inn1BattingPlayers = [], inn1BowlingPlayers = [];
 
-// batterStats[idx] = { runs, balls, fours, sixes, dismissal, active }
 let batterStats = {};
-// bowlerStats[idx]  = { runs, wickets, balls }
 let bowlerStats = {};
-
 const undoStack = [], redoStack = [];
 const M = document.getElementById("match");
 
-/* ── helpers ─────────────────────────── */
+/* ── Helpers ────────────────────────── */
 function bs(idx)  { return batterStats[idx]  || (batterStats[idx]  = {runs:0,balls:0,fours:0,sixes:0,dismissal:"",active:true}); }
 function bwl(idx) { return bowlerStats[idx]  || (bowlerStats[idx]  = {runs:0,wickets:0,balls:0}); }
 
@@ -102,12 +99,7 @@ function strikerSR() {
     const b = bs(strikerIdx);
     return b.balls > 0 ? ((b.runs/b.balls)*100).toFixed(1) : "0.0";
 }
-function nonStrikerSR() {
-    const b = bs(nonStrikerIdx);
-    return b.balls > 0 ? ((b.runs/b.balls)*100).toFixed(1) : "0.0";
-}
 
-/* ── save scorecard to localStorage ─── */
 function saveScorecard() {
     const data = {
         teamA, teamB, innings,
@@ -125,56 +117,60 @@ function saveScorecard() {
         inn1BowlingPlayers: [...inn1BowlingPlayers]
     };
     localStorage.setItem("scorecard", JSON.stringify(data));
+    broadcastUpdate(data); // Send to WebSocket
 }
 
-/* ── STEP 1 ─────────────────────────── */
+/* ── UI Logic ───────────────────────── */
 function stepMatchCard() {
-    M.innerHTML = `<h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><button id="startBtn">▶ Start Match</button>`;
+    M.innerHTML = `
+        <h2 style="color:var(--accent-gold)">Ready for Battle?</h2>
+        <p style="margin-bottom:2rem">${teamA} vs ${teamB}</p>
+        <button class="btn-primary" id="startBtn">▶ Start Match Setup</button>
+    `;
     document.getElementById("startBtn").onclick = stepToss;
 }
 
-/* ── STEP 2 : Toss ──────────────────── */
 function stepToss() {
     M.innerHTML = `
-        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
-        <h3>🪙 Toss</h3>
+        <h3>🪙 Coin Toss</h3>
         <p>Who calls the toss?</p>
-        <div style="margin:8px 0">
-            <input type="radio" id="callA" name="caller" value="A"><label for="callA">${teamA}</label>
-            <input type="radio" id="callB" name="caller" value="B"><label for="callB">${teamB}</label>
+        <div style="display:flex; gap:1rem; margin:1rem 0">
+            <label style="flex:1"><input type="radio" name="caller" value="A"> ${teamA}</label>
+            <label style="flex:1"><input type="radio" name="caller" value="B"> ${teamB}</label>
         </div>
-        <p>Choose:</p>
-        <div style="margin:8px 0">
-            <input type="radio" id="chooseHead" name="coinChoice" value="Head"><label for="chooseHead">🌕 Head</label>
-            <input type="radio" id="chooseTail" name="coinChoice" value="Tail"><label for="chooseTail">🌑 Tail</label>
+        <p>Choice:</p>
+        <div style="display:flex; gap:1rem; margin:1rem 0">
+            <label style="flex:1"><input type="radio" name="coinChoice" value="Head"> Head</label>
+            <label style="flex:1"><input type="radio" name="coinChoice" value="Tail"> Tail</label>
         </div>
-        <div class="coin" id="coinEl">🪙</div>
-        <div id="toss-result"></div>
-        <button id="flipBtn">Flip Coin</button>`;
+        <div id="toss-result" style="margin:1rem 0; font-weight:700; color:var(--accent-emerald)"></div>
+        <button class="btn-primary" id="flipBtn" style="width:100%">Flip Coin</button>
+    `;
 
     document.getElementById("flipBtn").onclick = () => {
         const caller = document.querySelector('input[name="caller"]:checked');
         const choice = document.querySelector('input[name="coinChoice"]:checked');
-        if (!caller || !choice) { alert("Select who calls and Head / Tail"); return; }
-        const callerName = caller.value === "A" ? teamA : teamB;
+        if (!caller || !choice) { alert("Select caller and side!"); return; }
+        
         const result = Math.random() < 0.5 ? "Head" : "Tail";
-        document.getElementById("coinEl").textContent = result === "Head" ? "🌕" : "🌑";
         const won = choice.value === result;
-        tossWinner = won ? callerName : (callerName === teamA ? teamB : teamA);
-        document.getElementById("toss-result").textContent = `Coin: ${result} — ${tossWinner} won the toss!`;
+        tossWinner = won ? (caller.value === "A" ? teamA : teamB) : (caller.value === "A" ? teamB : teamA);
+        
+        document.getElementById("toss-result").textContent = `It's ${result}! ${tossWinner} wins the toss.`;
         document.getElementById("flipBtn").disabled = true;
         setTimeout(stepBatBowlChoice, 1200);
     };
 }
 
-/* ── STEP 3 : Bat / Bowl ────────────── */
 function stepBatBowlChoice() {
     M.innerHTML = `
-        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
-        <h3>🏆 ${tossWinner} won the toss!</h3>
-        <p>Choose to:</p>
-        <button id="batBtn">🏏 Bat</button>
-        <button id="bowlBtn">🎳 Bowl</button>`;
+        <h3>🏆 ${tossWinner} wins!</h3>
+        <p>Deciding to...</p>
+        <div style="display:flex; gap:1rem; margin-top:1.5rem">
+            <button class="btn-primary" style="flex:1" id="batBtn">🏏 Bat First</button>
+            <button class="btn-primary" style="flex:1" id="bowlBtn">🎳 Bowl First</button>
+        </div>
+    `;
     document.getElementById("batBtn").onclick  = () => setupTeams("bat");
     document.getElementById("bowlBtn").onclick = () => setupTeams("bowl");
 }
@@ -188,18 +184,21 @@ function setupTeams(choice) {
     stepSelectPlayers();
 }
 
-/* ── STEP 4 : Select players ─────────── */
 function stepSelectPlayers() {
     const bOpts  = battingPlayers.map((p,i)=>`<option value="${i}">${p}</option>`).join("");
     const bwOpts = bowlingPlayers.map((p,i)=>`<option value="${i}">${p}</option>`).join("");
     M.innerHTML = `
-        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
-        <h3>Select Players</h3>
-        <p style="font-size:13px;color:#555">Batting: <b>${battingTeamName}</b> | Bowling: <b>${bowlingTeamName}</b></p>
-        <div class="select-row"><label>Striker:</label><select id="sel-striker">${bOpts}</select></div>
-        <div class="select-row"><label>Non-Striker:</label><select id="sel-nonstriker">${bOpts}</select></div>
-        <div class="select-row"><label>Bowler:</label><select id="sel-bowler">${bwOpts}</select></div>
-        <button id="startScoringBtn" style="margin-top:8px;background:#28a745">▶ Start Scoring</button>`;
+        <h3>Setup Lineup</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1.5rem">
+            Batting: ${battingTeamName} | Bowling: ${bowlingTeamName}
+        </p>
+        <div style="text-align:left">
+            <label>Striker</label><select id="sel-striker">${bOpts}</select>
+            <label>Non-Striker</label><select id="sel-nonstriker">${bOpts}</select>
+            <label>Opening Bowler</label><select id="sel-bowler">${bwOpts}</select>
+        </div>
+        <button class="btn-primary" id="startScoringBtn" style="width:100%; margin-top:1rem">▶ Start Match</button>
+    `;
     document.getElementById("sel-nonstriker").selectedIndex = 1;
     document.getElementById("startScoringBtn").onclick = () => {
         strikerIdx    = +document.getElementById("sel-striker").selectedIndex;
@@ -212,165 +211,73 @@ function stepSelectPlayers() {
     };
 }
 
-/* ── STEP 5 : Scoring ────────────────── */
 function stepScoring() {
     M.innerHTML = `
-        <div class="scoreboard" id="scoreboard">0/0 (0.0)</div>
-        <div class="player-info">
-            🏏 <span id="striker-name">-</span> <span id="striker-score">0(0)</span>
-            &nbsp;|&nbsp;
-            <span id="nonstriker-name">-</span> <span id="nonstriker-score">0(0)</span>
+        <div class="scoreboard" id="scoreboard">0/0</div>
+        <div class="over-indicator" id="overs-el">0.0 Overs</div>
+        
+        <div class="player-card striker">
+            <div class="player-info">
+                <div class="player-name" id="striker-name">-</div>
+                <div style="font-size:0.8rem; color:var(--text-muted)">SR: <span id="striker-sr">0.0</span></div>
+            </div>
+            <div class="player-score" id="striker-score">0(0)</div>
         </div>
-        <div class="player-info">🎳 <span id="bowler-name">-</span> <span id="bowler-stats">0-0-0</span></div>
-        <hr>
+        
+        <div class="player-card">
+            <div class="player-name" id="nonstriker-name">-</div>
+            <div class="player-score" id="nonstriker-score">0(0)</div>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:1rem 0; font-size:0.9rem">
+            <span>🎳 <span id="bowler-name">-</span></span>
+            <span id="bowler-stats" style="color:var(--accent-gold)">0-0 (0.0)</span>
+        </div>
+
         <div class="score-grid">
-            <button class="score-btn btn-6" onclick="addRuns(6)">6</button>
-            <button class="score-btn btn-4" onclick="addRuns(4)">4</button>
-            <button class="score-btn btn-3" onclick="addRuns(3)">3</button>
-            <button class="score-btn btn-2" onclick="addRuns(2)">2</button>
-            <button class="score-btn btn-1" onclick="addRuns(1)">1</button>
-            <button class="score-btn btn-0" onclick="addRuns(0)">0</button>
+            <button class="score-btn" onclick="addRuns(1)">1</button>
+            <button class="score-btn" onclick="addRuns(2)">2</button>
+            <button class="score-btn" onclick="addRuns(3)">3</button>
+            <button class="score-btn highlight" onclick="addRuns(4)">4</button>
+            <button class="score-btn highlight" onclick="addRuns(6)">6</button>
+            <button class="score-btn" onclick="addRuns(0)">0</button>
         </div>
+        
         <div class="wicket-grid">
-            <button class="wicket-btn" onclick="addWicket('Bowled')">Bowled</button>
-            <button class="wicket-btn" onclick="addWicket('Caught Out')">Caught Out</button>
-            <button class="wicket-btn" onclick="addWicket('LBW')">LBW</button>
-            <button class="wicket-btn" onclick="addWicket('Run Out')">Run Out</button>
-            <button class="wicket-btn" onclick="addWicket('Hit Wicket')">Hit Wicket</button>
-            <button class="wicket-btn wide-btn"   onclick="addExtra('Wide')">Wide +1</button>
-            <button class="wicket-btn noball-btn" onclick="addExtra('No Ball')">No Ball +1</button>
+            <button class="wicket-btn" onclick="addWicket('Out')">WICKET</button>
+            <button class="wicket-btn" style="background:rgba(245,158,11,0.1); color:var(--accent-gold)" onclick="addExtra('Wide')">WIDE</button>
+            <button class="wicket-btn" style="background:rgba(245,158,11,0.1); color:var(--accent-gold)" onclick="addExtra('No Ball')">NO BALL</button>
+            <button class="wicket-btn" style="background:rgba(255,255,255,0.05); color:white" onclick="undo()">UNDO</button>
         </div>
-        <div class="ball-log" id="ball-log">This over: —</div>
-        <div class="history-btns">
-            <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
-            <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
-        </div>`;
+        
+        <div class="ball-log" id="ball-log">Over Progress: —</div>
+    `;
     updateScoreboard();
 }
 
-/* ── STEP 6 : Change bowler ──────────── */
-function stepChangeBowler() {
-    const prev = bowlerIdx;
-    const opts = bowlingPlayers.map((p,i) => {
-        const s = bwl(i);
-        const ov = Math.floor(s.balls/6) + (s.balls%6 > 0 ? `.${s.balls%6}` : ".0");
-        const eco = s.balls > 0 ? ((s.runs/(s.balls/6))).toFixed(1) : "-";
-        const disabled = i === prev ? "disabled" : "";
-        const label = i === prev ? " (prev)" : `  ${ov}ov  ${s.wickets}W-${s.runs}R`;
-        return `<option value="${i}" ${disabled}>${p}${label}</option>`;
-    }).join("");
+function updateScoreboard() {
+    if (!document.getElementById("scoreboard")) return;
+    document.getElementById("scoreboard").textContent = `${score}/${wickets}`;
+    document.getElementById("overs-el").textContent = `${overs}.${balls%6} Overs`;
 
-    M.innerHTML = `
-        <div class="scoreboard">${score}/${wickets}  (${overs}.0)</div><hr>
-        <h3>Over ${overs} complete!</h3>
-        <p>Select next bowler:</p>
-        <select id="sel-bowler-change">${opts}</select><br>
-        <button id="confirmBowler" style="margin-top:12px;background:#28a745">▶ Continue</button>`;
+    const bat1 = bs(strikerIdx), bat2 = bs(nonStrikerIdx);
+    document.getElementById("striker-name").textContent     = battingPlayers[strikerIdx] + "*";
+    document.getElementById("striker-score").textContent    = `${bat1.runs}(${bat1.balls})`;
+    document.getElementById("striker-sr").textContent       = strikerSR();
+    document.getElementById("nonstriker-name").textContent  = battingPlayers[nonStrikerIdx];
+    document.getElementById("nonstriker-score").textContent = `${bat2.runs}(${bat2.balls})`;
 
-    const sel = document.getElementById("sel-bowler-change");
-    for (let i = 0; i < sel.options.length; i++) {
-        if (!sel.options[i].disabled) { sel.selectedIndex = i; break; }
-    }
-    document.getElementById("confirmBowler").onclick = () => {
-        bowlerIdx = +document.getElementById("sel-bowler-change").value;
-        stepScoring(); updateScoreboard();
-    };
-}
+    const bw = bwl(bowlerIdx);
+    document.getElementById("bowler-name").textContent  = bowlingPlayers[bowlerIdx];
+    document.getElementById("bowler-stats").textContent = `${bw.wickets}W - ${bw.runs}R (${Math.floor(bw.balls/6)}.${bw.balls%6})`;
 
-/* ── STEP 7 : Next batter ────────────── */
-function isAllOut() {
-    const used = Object.keys(batterStats).map(Number);
-    const fresh = battingPlayers.map((_,i) => i).filter(i => !used.includes(i));
-    return wickets >= 10 || fresh.length === 0;
-}
-
-function stepInningsBreak() {
-    firstInningsScore   = score;
-    inn1BatterStats     = JSON.parse(JSON.stringify(batterStats));
-    inn1BowlerStats     = JSON.parse(JSON.stringify(bowlerStats));
-    inn1BattingTeam     = battingTeamName;
-    inn1BowlingTeam     = bowlingTeamName;
-    inn1BattingPlayers  = [...battingPlayers];
-    inn1BowlingPlayers  = [...bowlingPlayers];
+    const logEl = document.getElementById("ball-log");
+    logEl.textContent = "Over Progress: " + (overBalls.length ? overBalls.join(" • ") : "—");
+    
     saveScorecard();
-
-    M.innerHTML = `
-        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
-        <h3>🏏 End of 1st Innings</h3>
-        <p><b>${battingTeamName}</b> scored <b>${score}/${wickets}</b> (${overs}.${balls%6} ov)</p>
-        <p>Target for <b>${bowlingTeamName}</b>: <b>${score + 1}</b></p><hr>
-        <button id="startInn2Btn" style="background:#28a745">▶ Start 2nd Innings</button>`;
-
-    document.getElementById("startInn2Btn").onclick = () => {
-        // swap teams
-        [battingTeamName, bowlingTeamName] = [bowlingTeamName, battingTeamName];
-        [battingPlayers, bowlingPlayers]   = [bowlingPlayers, battingPlayers];
-        innings = 2;
-        score = wickets = balls = overs = 0;
-        overBalls = []; batterStats = {}; bowlerStats = {};
-        undoStack.length = 0; redoStack.length = 0;
-        stepSelectPlayers();
-    };
 }
 
-function stepMatchResult() {
-    saveScorecard();
-    saveMatchToServer();   // persist permanently
-    let resultText;
-    if (score > firstInningsScore) {
-        const wl = 10 - wickets;
-        resultText = `🏆 <b>${battingTeamName}</b> won by ${wl} wicket${wl !== 1 ? 's' : ''}!`;
-    } else if (score === firstInningsScore) {
-        resultText = `🤝 Match Tied!`;
-    } else {
-        const rd = firstInningsScore - score + 1;
-        resultText = `🏆 <b>${bowlingTeamName}</b> won by ${rd} run${rd !== 1 ? 's' : ''}!`;
-    }
-    M.innerHTML = `
-        <h2>${teamA} &nbsp;VS&nbsp; ${teamB}</h2><hr>
-        <h3>Match Over!</h3>
-        <p style="font-size:17px">${resultText}</p><hr>
-        <p style="font-size:13px;color:#555">1st Innings: <b>${inn1BattingTeam}</b> — ${firstInningsScore}</p>
-        <p style="font-size:13px;color:#555">2nd Innings: <b>${battingTeamName}</b> — ${score}/${wickets} (${overs}.${balls%6} ov)</p>
-        <button onclick="window.location.href='/status'" style="margin-top:12px;background:#1d3557">📊 View Scorecard</button>
-        <button onclick="window.location.href='/stats'" style="margin-top:4px;background:#495057">🏅 Overall Stats</button>`;
-}
-
-function saveMatchToServer() {
-    const raw = localStorage.getItem("scorecard");
-    if (!raw) return;
-    fetch("/api/save-match", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: raw
-    }).catch(() => {});
-}
-
-function stepNextBatter() {
-    if (isAllOut()) {
-        if (innings === 1) { stepInningsBreak(); }
-        else               { stepMatchResult(); }
-        return;
-    }
-    const used = Object.keys(batterStats).map(Number);
-    const fresh = battingPlayers.map((p,i) => ({p,i})).filter(({i}) => !used.includes(i));
-    const opts = fresh.map(({p,i}) => `<option value="${i}">${p}</option>`).join("");
-
-    M.innerHTML = `
-        <div class="scoreboard">${score}/${wickets}  (${overs}.${balls%6})</div><hr>
-        <h3>Wicket! 🏏 Select next batter</h3>
-        <select id="sel-next">${opts}</select><br>
-        <button id="confirmNext" style="margin-top:12px;background:#28a745">Continue</button>`;
-
-    document.getElementById("confirmNext").onclick = () => {
-        const newIdx = +document.getElementById("sel-next").value;
-        strikerIdx = newIdx;
-        bs(newIdx).active = true;
-        stepScoring(); updateScoreboard();
-    };
-}
-
-/* ── Scoring logic ───────────────────── */
+/* ── Logic ──────────────────────────── */
 function addRuns(r) {
     saveState();
     score += r; balls++;
@@ -382,11 +289,7 @@ function addRuns(r) {
     bw.runs += r; bw.balls++;
     overBalls.push(r === 0 ? "·" : r);
     if (r % 2 !== 0) swapStrike();
-    if (innings === 2 && score > firstInningsScore) {
-        checkOver(); updateScoreboard(); saveScorecard();
-        stepMatchResult(); return;
-    }
-    checkOver(); updateScoreboard(); saveScorecard();
+    checkOver(); updateScoreboard();
 }
 
 function addWicket(type) {
@@ -397,96 +300,113 @@ function addWicket(type) {
     const bw = bwl(bowlerIdx);
     bw.wickets++; bw.balls++;
     overBalls.push("W");
-    checkOver(); updateScoreboard(); saveScorecard();
-    stepNextBatter();
+    checkOver(); updateScoreboard();
+    if (wickets < 10) stepNextBatter();
+    else endInnings();
 }
 
 function addExtra(type) {
     saveState();
     score++;
     bwl(bowlerIdx).runs++;
-    overBalls.push(type === "Wide" ? "Wd" : "Nb");
-    if (innings === 2 && score > firstInningsScore) {
-        updateScoreboard(); saveScorecard();
-        stepMatchResult(); return;
-    }
-    updateScoreboard(); saveScorecard(); refreshBallLog();
+    overBalls.push(type === 'Wide' ? 'Wd' : 'Nb');
+    updateScoreboard();
 }
 
 function checkOver() {
     const legal = overBalls.filter(b => b !== "Wd" && b !== "Nb").length;
-    if (legal === 6) { overs++; overBalls = []; swapStrike(); stepChangeBowler(); }
-    else refreshBallLog();
+    if (legal === 6) { 
+        overs++; overBalls = []; swapStrike(); 
+        if (wickets < 10) stepChangeBowler(); 
+    }
 }
 
-function refreshBallLog() {
-    const el = document.getElementById("ball-log");
-    if (el) el.textContent = "This over: " + (overBalls.length ? overBalls.join(" · ") : "—");
-}
+function swapStrike() { [strikerIdx, nonStrikerIdx] = [nonStrikerIdx, strikerIdx]; }
 
-function swapStrike() {
-    [strikerIdx, nonStrikerIdx] = [nonStrikerIdx, strikerIdx];
-}
+function stepNextBatter() {
+    const used = Object.keys(batterStats).map(Number);
+    const fresh = battingPlayers.map((p,i) => ({p,i})).filter(({i}) => !used.includes(i));
+    const opts = fresh.map(({p,i}) => `<option value="${i}">${p}</option>`).join("");
 
-function updateScoreboard() {
-    const el = id => document.getElementById(id);
-    if (!el("scoreboard")) return;
-    el("scoreboard").textContent = `${score}/${wickets}  (${overs}.${balls%6})`;
+    M.innerHTML = `
+        <h3>Howzat! Wicket Down</h3>
+        <p>Select next batter:</p>
+        <select id="sel-next">${opts}</select>
+        <button class="btn-primary" id="confirmNext" style="width:100%">Continue</button>
+    `;
 
-    const bat1 = bs(strikerIdx), bat2 = bs(nonStrikerIdx);
-    el("striker-name").textContent     = battingPlayers[strikerIdx] + "*";
-    el("striker-score").textContent    = `${bat1.runs}(${bat1.balls}) SR:${strikerSR()}`;
-    el("nonstriker-name").textContent  = battingPlayers[nonStrikerIdx];
-    el("nonstriker-score").textContent = `${bat2.runs}(${bat2.balls})`;
-
-    const bw = bwl(bowlerIdx);
-    const bowlOv = `${Math.floor(bw.balls/6)}.${bw.balls%6}`;
-    const eco    = bw.balls > 0 ? ((bw.runs/(bw.balls/6))).toFixed(1) : "-";
-    el("bowler-name").textContent  = bowlingPlayers[bowlerIdx];
-    el("bowler-stats").textContent = `${bowlOv}ov  ${bw.wickets}W-${bw.runs}R  Eco:${eco}`;
-
-    syncHistoryBtns(); refreshBallLog();
-}
-
-function resetStats() {
-    score = wickets = balls = overs = 0;
-    overBalls = []; batterStats = {}; bowlerStats = {};
-    undoStack.length = 0; redoStack.length = 0;
-}
-
-/* ── Undo / Redo ─────────────────────── */
-function snapshot() {
-    return {
-        score, wickets, balls, overs,
-        strikerIdx, nonStrikerIdx, bowlerIdx,
-        overBalls: [...overBalls],
-        batterStats: JSON.parse(JSON.stringify(batterStats)),
-        bowlerStats:  JSON.parse(JSON.stringify(bowlerStats))
+    document.getElementById("confirmNext").onclick = () => {
+        strikerIdx = +document.getElementById("sel-next").value;
+        bs(strikerIdx).active = true;
+        stepScoring(); updateScoreboard();
     };
 }
-function saveState()     { undoStack.push(snapshot()); redoStack.length = 0; }
-function restoreState(s) {
-    ({score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx} = s);
-    overBalls   = [...s.overBalls];
-    batterStats = JSON.parse(JSON.stringify(s.batterStats));
-    bowlerStats = JSON.parse(JSON.stringify(s.bowlerStats));
+
+function stepChangeBowler() {
+    const opts = bowlingPlayers.map((p,i) => `<option value="${i}" ${i === bowlerIdx ? 'disabled' : ''}>${p}</option>`).join("");
+    M.innerHTML = `
+        <h3>Over Complete</h3>
+        <p>Select next bowler:</p>
+        <select id="sel-bowler-change">${opts}</select>
+        <button class="btn-primary" id="confirmBowler" style="width:100%">Continue</button>
+    `;
+    document.getElementById("confirmBowler").onclick = () => {
+        bowlerIdx = +document.getElementById("sel-bowler-change").value;
+        stepScoring(); updateScoreboard();
+    };
 }
-function undo() {
-    if (!undoStack.length) return;
-    redoStack.push(snapshot()); restoreState(undoStack.pop());
-    stepScoring(); updateScoreboard(); saveScorecard();
+
+function endInnings() {
+    if (innings === 1) {
+        firstInningsScore = score;
+        inn1BatterStats = JSON.parse(JSON.stringify(batterStats));
+        inn1BowlerStats = JSON.parse(JSON.stringify(bowlerStats));
+        inn1BattingTeam = battingTeamName;
+        inn1BowlingTeam = bowlingTeamName;
+        
+        M.innerHTML = `
+            <h3>Innings Complete</h3>
+            <div class="scoreboard">${score}/${wickets}</div>
+            <p>Target for ${bowlingTeamName}: ${score + 1}</p>
+            <button class="btn-primary" id="startInn2Btn" style="width:100%; margin-top:2rem">Start 2nd Innings</button>
+        `;
+        document.getElementById("startInn2Btn").onclick = () => {
+            [battingTeamName, bowlingTeamName] = [bowlingTeamName, battingTeamName];
+            [battingPlayers, bowlingPlayers]   = [bowlingPlayers, battingPlayers];
+            innings = 2;
+            score = wickets = balls = overs = 0;
+            overBalls = []; batterStats = {}; bowlerStats = {};
+            stepSelectPlayers();
+        };
+    } else {
+        stepMatchResult();
+    }
 }
-function redo() {
-    if (!redoStack.length) return;
-    undoStack.push(snapshot()); restoreState(redoStack.pop());
-    stepScoring(); updateScoreboard(); saveScorecard();
+
+function stepMatchResult() {
+    saveMatchToServer();
+    let result = score > firstInningsScore ? `${battingTeamName} won!` : (score === firstInningsScore ? "Match Tied!" : `${bowlingTeamName} won!`);
+    M.innerHTML = `
+        <h3>Match Ended</h3>
+        <div class="scoreboard">${score}/${wickets}</div>
+        <h2 style="color:var(--accent-gold)">${result}</h2>
+        <button class="btn-primary" onclick="location.reload()" style="width:100%; margin-top:2rem">New Match</button>
+    `;
 }
-function syncHistoryBtns() {
-    const u = document.getElementById("undoBtn");
-    const r = document.getElementById("redoBtn");
-    if (u) u.disabled = !undoStack.length;
-    if (r) r.disabled = !redoStack.length;
+
+function saveMatchToServer() {
+    fetch("/api/save-match", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: localStorage.getItem("scorecard")
+    }).catch(e => console.error(e));
 }
+
+function resetStats() { score = wickets = balls = overs = 0; overBalls = []; batterStats = {}; bowlerStats = {}; undoStack.length = 0; }
+function saveState() { undoStack.push(snapshot()); }
+function snapshot() { return { score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx, overBalls: [...overBalls], batterStats: JSON.parse(JSON.stringify(batterStats)), bowlerStats: JSON.parse(JSON.stringify(bowlerStats)) }; }
+function undo() { if (undoStack.length) { restoreState(undoStack.pop()); stepScoring(); updateScoreboard(); } }
+function restoreState(s) { ({score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx} = s); overBalls = [...s.overBalls]; batterStats = JSON.parse(JSON.stringify(s.batterStats)); bowlerStats = JSON.parse(JSON.stringify(s.bowlerStats)); }
 
 stepMatchCard();
 </script>
