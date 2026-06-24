@@ -1,12 +1,12 @@
-from http import server
+# from http import server
 import smtplib
 from email.mime.text import MIMEText
 
 GMAIL = "basava72@gmail.com"
-APP_PASSWORD = "ycpcanxgrftxawfh"  # Use an app password for Gmail
+APP_PASSWORD = "zpvhzhshxunuliun"  # Use an app password for Gmail
 
 def send_email(email, otp):
-    massage =MIMEText( f"Your Cricket scoring admin OTP code is: {otp}")
+    # massage =MIMEText( f"Your Cricket scoring admin OTP code is: {otp}")
 
     subject = "Your OTP Code"
     body = f"Your OTP code is: {otp}"
@@ -29,9 +29,9 @@ def send_email(email, otp):
         print(f"Error sending email: {e}")
         return False
     
-    server.login(GMAIL, APP_PASSWORD)
-    server.sendmessage(GMAIL, email, msg.as_string())
-    server.quit()
+    # server.login(GMAIL, APP_PASSWORD)
+    # server.sendmessage(GMAIL, email, msg.as_string())
+    # server.quit()
 
     print("Email Sent Successfully")
 
@@ -40,3 +40,8 @@ if __name__ == "__main__":
         "basava72@gmail.com",
         "123456"
     )
+
+
+    # ycpcanxgrftxawfh
+
+    

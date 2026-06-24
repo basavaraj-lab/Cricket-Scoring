@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Cricket Scoring - Fan View</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -13,6 +14,18 @@
         <a href="/user/match">Matches</a>
         <a href="/user/status">Live Score</a>
         <a href="/user/table">Table</a>
+
+    <title>cricket scoring</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div id="nav_bar">
+        <div id="nav-logo" ><img src="../static/images/logo.png" alt="logo"></div>
+        <a href="/user/home">Home</a>
+        <a href="/user/match">Matches</a>
+        <a href="/user/table">Table</a>
+        <a href="/user/status">Status</a>
+>>>>>>> ae96629 (Added match details, live score improvements and scorecard updates)
     </div>
 
     <div id="home-content">
@@ -24,5 +37,22 @@
             </button>
         </div>
     </div>
+
+    <script>
+        const user_home = document.getElementById("home-content");
+
+    const socket = new WebSocket("ws://localhost:8000/ws/score");
+
+    socket.onmessage = function(event) {
+    const score = JSON.parse(event.data);
+
+    document.getElementById("runs").innerText =
+        score.runs + "/" + score.wickets;
+
+    document.getElementById("overs").innerText =
+        score.overs;
+};
+</script>
+>>>>>>> ae96629 (Added match details, live score improvements and scorecard updates)
 </body>
 </html>

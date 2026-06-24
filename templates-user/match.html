@@ -1,24 +1,666 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cricket scoring</title>
-    <link rel="stylesheet" href="../index.css/style.css">
+    <!-- <link rel="stylesheet" href="../index.css/style.css">
+    <link rel="stylesheet" href="index.css/style.css"> 
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div id="nav_bar">
         <div id="nav-logo" ><img src="../frontend/images/nav-logo.png" alt="logo"></div>
-        <a href="index.html">Home</a>
-        <a href="match.html">Matches</a>
-        <a href="table.html">Table</a>
-        <a href="status.html">Status</a>
+        <a href="/user/home">Home</a>
+        <a href="/user/match">Matches</a>
+        <a href="/user/table">Table</a>
+        <a href="/user/status">Status</a>
     </div>
 
+    <div class="scoreboard">
+    <h1 id="runs">0/0</h1>
+    <h2 id="overs">0.0</h2>
+</div>
+
     <div id="home-content">
-        <h3>Matches</h3>
-        <div id="mat-preview">matches preview</div>
+        <h3>Match</h3>
+        <div id="mat-preview">match preview</div>
     </div>
+
+    <script>
+    document.getElementById("teams").innerText =
+    `${data.teamA} vs ${data.teamB}`;
+document.getElementById("venue").innerText = data.venue;
+document.getElementById("date").innerText = data.date;
+    const matchPreview = document.getElementById("mat-preview");
+    window.addEventListener("DOMContentLoaded", () => {
+        fetch("/match-preview")
+            .then((response) => response.json())
+            .then((data) => {
+                matchPreview.innerHTML = `
+                    <p>${data.team1} vs ${data.team2}</p>
+                    <p>Venue: ${data.venue}</p>
+                    <p>Date: ${data.date}</p>
+                `;
+            })
+            .catch((error) => {
+                console.error("Error fetching match preview:", error);
+                matchPreview.innerHTML = "<p>Error loading match preview.</p>";
+            });
+    });
+    const socket = new WebSocket("ws://127.0.0.1:8000/ws/score");
+
+    socket.onopen = () => {
+        console.log("✅ Connected to WebSocket");
+    };
+
+    socket.onmessage = (event) => {
+        console.log("📩 Received:", event.data);
+
+    const score = JSON.parse(event.data);
+
+    document.getElementById("runs").innerText =
+        `${score.runs}/${score.wickets}`;
+
+    document.getElementById("overs").innerText =
+        score.overs;
+    };
+
+    socket.onerror = (error) => {
+        console.log("❌ WebSocket Error:", error);
+    };
+
+    socket.onclose = () => {
+        console.log("🔴 WebSocket Closed");
+    };
+
+
+</script>
+
+</body>
+</html>-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Cricket Match</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<style>
+   /* ==============================
+   Scoreboard
+============================== */
+
+.scoreboard{
+    width:90%;
+    margin:25px auto;
+    padding:20px;
+    background:#1e293b;
+    color:white;
+    border-radius:15px;
+    text-align:center;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);
+}
+
+.scoreboard h1{
+    font-size:55px;
+    margin:5px;
+}
+
+.scoreboard h2{
+    font-size:30px;
+    margin:5px;
+    color:#38bdf8;
+}
+
+.scoreboard h3{
+    margin-top:15px;
+    font-size:28px;
+}
+
+.scoreboard p{
+    font-size:18px;
+    margin:4px;
+    color:#d1d5db;
+}
+
+#match-stats{
+    width:90%;
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:15px;
+}
+
+.stat-box{
+    background:white;
+    border-radius:12px;
+    padding:15px;
+    text-align:center;
+    box-shadow:0 5px 12px rgba(0,0,0,.15);
+}
+
+.stat-box h4{
+    color:#666;
+    margin-bottom:8px;
+}
+
+.stat-box p{
+    font-size:24px;
+    font-weight:bold;
+    color:#0f172a;
+}
+
+#current-batters{
+    width:90%;
+    margin:20px auto;
+    display:flex;
+    gap:20px;
+}
+
+.batter-card{
+    flex:1;
+    background:#fff;
+    padding:18px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+.striker{
+    border-left:6px solid #16a34a;
+}
+
+.nonstriker{
+    border-left:6px solid #64748b;
+}
+
+.badge{
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:20px;
+    color:white;
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.green{
+    background:#16a34a;
+}
+
+.gray{
+    background:#64748b;
+}
+#striker-card,
+#nonstriker-card{
+    flex:1;
+    background:#ffffff;
+    padding:18px;
+    border-radius:12px;
+    box-shadow:0 5px 12px rgba(0,0,0,.15);
+    line-height:2;
+}
+
+#striker-card{
+    border-left:6px solid #22c55e;
+}
+
+#nonstriker-card{
+    border-left:6px solid #3b82f6;
+}
+
+#current-bowler{
+    width:90%;
+    margin:20px auto;
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 5px 12px rgba(0,0,0,.15);
+    line-height:2;
+}
+
+#batting-scorecard,
+#bowling-scorecard,
+#yet-to-bat{
+    width:90%;
+    margin:25px auto;
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 5px 12px rgba(0,0,0,.15);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+table th{
+    background:#1e3a8a;
+    color:white;
+    padding:12px;
+}
+
+table td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:center;
+}
+
+table tr:nth-child(even){
+    background:#f8fafc;
+}
+
+table tr:hover{
+    background:#e0f2fe;
+}
+#yet-to-bat ul{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:0;
+}
+
+#yet-to-bat li{
+    list-style:none;
+    background:#e2e8f0;
+    padding:8px 14px;
+    border-radius:20px;
+}
+
+@media(max-width:900px){
+    #current-batters{
+        flex-direction:column;
+    }
+    #match-stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+    .scoreboard h1{
+        font-size:40px;
+    }
+}
+
+</style>
+<body>
+    <div id="nav_bar">
+        <div id="nav-logo" ><img src="../static/images/logo.png" alt="logo"></div>
+        <a href="/user/home">Home</a>
+        <a href="/user/match">Matches</a>
+        <a href="/user/table">Table</a>
+        <a href="/user/status">Status</a>
+    </div>
+
+    <div class="scoreboard">
+        <h1 id="runs">0/0</h1>
+        <h2 id="overs">0.0</h2>
+        <h3 id="teams">Team A vs Team B</h3>
+        <p id="venue">Venue: </p>
+        <p id="date">Date: </p>
+    </div>
+    <div id="mat-preview"></div>
+<div id="current-batters">
+    <div id="striker-card" class="batter-card"></div>
+    <div id="nonstriker-card" class="batter-card"></div>
+</div>
+<hr>
+<div id="current-bowler">
+    <h3>Current Bowler</h3>
+</div>
+<hr>
+<div id="batting-scorecard">
+    <h3>Batting Scorecard</h3>
+</div>
+<hr>
+<div id="yet-to-bat">
+    <h3>Yet To Bat</h3>
+</div>
+<hr>
+<div id="bowling-scorecard">
+    <h3>Bowling Scorecard</h3>
+</div>
+
+<script>
+
+// ----------------------
+// Load Match Details
+// ----------------------
+
+// const matchPreview = document.getElementById("mat-preview");
+// fetch("/api/save-match", {
+//     method: "POST",
+//     headers: {
+//         "Content-Type": "application/json"
+//     },
+//     body: JSON.stringify(data)
+// });
+// .catch(error => {
+
+//     console.log(error);
+
+//     matchPreview.innerHTML = `
+//         <p>Unable to load match details.</p>
+//     `;
+// });
+
+fetch("/api/current-score")
+.then(response => response.json())
+.then(score => {
+
+    document.getElementById("runs").innerText =
+        `${score.runs}/${score.wickets}`;
+
+    document.getElementById("overs").innerText =
+        score.overs;
+
+        updateLiveScreen(score);
+
+});
+// ----------------------
+// Load Current Score
+// ----------------------
+
+// fetch("/api/save-match", {
+//     method: "POST",
+//     headers: {
+//         "Content-Type": "application/json"
+//     },
+//     body: JSON.stringify(data)
+// });
+
+
+// ----------------------
+// Live Score WebSocket
+// ----------------------
+function updateLiveScreen(data) {
+
+    // ---------------- Score ----------------
+    document.getElementById("runs").innerText =
+        `${data.runs}/${data.wickets}`;
+
+    document.getElementById("overs").innerText =
+        data.overs;
+
+    // ---------------- Match Details ----------------
+    document.getElementById("teams").innerText =
+        `${data.match.team1} vs ${data.match.team2}`;
+
+    document.getElementById("venue").innerText =
+        `Venue: ${data.match.venue}`;
+
+    document.getElementById("date").innerText =
+        `Date: ${data.match.date}`;
+
+    // ---------------- Current Batters ----------------
+    document.getElementById("striker-card").innerHTML = `
+        ⭐ <b>${data.striker.name}</b><br>
+        Runs : ${data.striker.runs}<br>
+        Balls : ${data.striker.balls}<br>
+        4s : ${data.striker.fours}<br>
+        6s : ${data.striker.sixes}<br>
+        SR : ${data.striker.strikeRate}
+    `;
+
+    document.getElementById("nonstriker-card").innerHTML = `
+        <b>${data.nonStriker.name}</b><br>
+        Runs : ${data.nonStriker.runs}<br>
+        Balls : ${data.nonStriker.balls}<br>
+        4s : ${data.nonStriker.fours}<br>
+        6s : ${data.nonStriker.sixes}<br>
+        SR : ${data.nonStriker.strikeRate}
+    `;
+
+    // ---------------- Current Bowler ----------------
+    const eco = data.bowler.balls > 0
+        ? (data.bowler.runs / (data.bowler.balls / 6)).toFixed(2)
+        : "0.00";
+
+    document.getElementById("current-bowler").innerHTML = `
+        <h3>Current Bowler</h3>
+        <b>${data.bowler.name}</b><br>
+        Overs : ${Math.floor(data.bowler.balls / 6)}.${data.bowler.balls % 6}<br>
+        Runs : ${data.bowler.runs}<br>
+        Wickets : ${data.bowler.wickets}<br>
+        Economy : ${eco}
+    `;
+
+    // ---------------- Batting Scorecard ----------------
+    let battingHTML = `
+    <table border="1" width="100%">
+    <tr>
+        <th>Player</th>
+        <th>R</th>
+        <th>B</th>
+        <th>4</th>
+        <th>6</th>
+        <th>SR</th>
+    </tr>
+    `;
+
+    for (const index in data.batterStats) {
+
+        const batter = data.batterStats[index];
+
+        battingHTML += `
+        <tr>
+            <td>${data.battingPlayers[index]}</td>
+            <td>${batter.runs}</td>
+            <td>${batter.balls}</td>
+            <td>${batter.fours}</td>
+            <td>${batter.sixes}</td>
+            <td>${
+                batter.balls > 0
+                    ? ((batter.runs / batter.balls) * 100).toFixed(1)
+                    : "0.0"
+            }</td>
+        </tr>`;
+    }
+
+    battingHTML += "</table>";
+
+    document.getElementById("batting-scorecard").innerHTML =
+        "<h3>Batting Scorecard</h3>" + battingHTML;
+
+    // ---------------- Yet To Bat ----------------
+    let yetHTML = "<ul>";
+
+    for (let i = 0; i < data.battingPlayers.length; i++) {
+
+        if (!data.batterStats[i]) {
+            yetHTML += `<li>${data.battingPlayers[i]}</li>`;
+        }
+
+    }
+
+    yetHTML += "</ul>";
+
+    document.getElementById("yet-to-bat").innerHTML =
+        "<h3>Yet To Bat</h3>" + yetHTML;
+
+    // ---------------- Bowling Scorecard ----------------
+    let bowlingHTML = `
+    <table border="1" width="100%">
+    <tr>
+        <th>Bowler</th>
+        <th>Overs</th>
+        <th>Runs</th>
+        <th>Wickets</th>
+        <th>Economy</th>
+    </tr>
+    `;
+
+    for (const index in data.bowlerStats) {
+
+        const bowler = data.bowlerStats[index];
+
+        const eco =
+            bowler.balls > 0
+                ? (bowler.runs / (bowler.balls / 6)).toFixed(2)
+                : "0.00";
+
+        bowlingHTML += `
+        <tr>
+            <td>${data.bowlingPlayers[index]}</td>
+            <td>${Math.floor(bowler.balls / 6)}.${bowler.balls % 6}</td>
+            <td>${bowler.runs}</td>
+            <td>${bowler.wickets}</td>
+            <td>${eco}</td>
+        </tr>`;
+    }
+
+    bowlingHTML += "</table>";
+
+    document.getElementById("bowling-scorecard").innerHTML =
+        "<h3>Bowling Scorecard</h3>" + bowlingHTML;
+}
+
+
+
+
+const socket = new WebSocket("ws://127.0.0.1:8000/ws/score");
+
+socket.onmessage = (event) => {
+
+    const data = JSON.parse(event.data);
+
+    // Score
+    document.getElementById("runs").innerText =
+        `${data.runs}/${data.wickets}`;
+
+    document.getElementById("overs").innerText =
+        data.overs;
+
+    // Match Details
+    document.getElementById("teams").innerText =
+        `${data.match.team1} vs ${data.match.team2}`;
+
+    document.getElementById("venue").innerText =
+        `Venue: ${data.match.venue}`;
+
+    document.getElementById("date").innerText =
+        `Date: ${data.match.date}`;
+
+    // Current Batters
+    document.getElementById("striker-card").innerHTML = `
+        ⭐ <b>${data.striker.name}</b><br>
+        Runs : ${data.striker.runs}<br>
+        Balls : ${data.striker.balls}<br>
+        4s : ${data.striker.fours}<br>
+        6s : ${data.striker.sixes}<br>
+        SR : ${data.striker.strikeRate}
+    `;
+
+    document.getElementById("nonstriker-card").innerHTML = `
+        <b>${data.nonStriker.name}</b><br>
+        Runs : ${data.nonStriker.runs}<br>
+        Balls : ${data.nonStriker.balls}<br>
+        4s : ${data.nonStriker.fours}<br>
+        6s : ${data.nonStriker.sixes}<br>
+        SR : ${data.nonStriker.strikeRate}
+    `;
+
+    // Current Bowler
+    const eco = data.bowler.balls > 0
+        ? (data.bowler.runs / (data.bowler.balls / 6)).toFixed(2)
+        : "0.00";
+
+    document.getElementById("current-bowler").innerHTML = `
+        <h3>Current Bowler</h3>
+        <b>${data.bowler.name}</b><br>
+        Overs : ${Math.floor(data.bowler.balls / 6)}.${data.bowler.balls % 6}<br>
+        Runs : ${data.bowler.runs}<br>
+        Wickets : ${data.bowler.wickets}<br>
+        Economy : ${eco}
+    `;
+
+    // Batting Scorecard
+    let battingHTML = `
+<table border="1" width="100%">
+<tr>
+<th>Player</th>
+<th>R</th>
+<th>B</th>
+<th>4</th>
+<th>6</th>
+<th>SR</th>
+</tr>
+`;
+
+for (const index in data.batterStats) {
+
+    const batter = data.batterStats[index];
+
+    battingHTML += `
+    <tr>
+        <td>${data.battingPlayers[index]}</td>
+        <td>${batter.runs}</td>
+        <td>${batter.balls}</td>
+        <td>${batter.fours}</td>
+        <td>${batter.sixes}</td>
+        <td>${
+            batter.balls > 0
+                ? ((batter.runs / batter.balls) * 100).toFixed(1)
+                : "0.0"
+        }</td>
+    </tr>
+    `;
+}
+
+//yet to bat
+battingHTML += "</table>";
+
+document.getElementById("batting-scorecard").innerHTML =
+"<h3>Batting Scorecard</h3>" + battingHTML;
+
+let yetHTML = "<ul>";
+for (let i = 0; i < data.battingPlayers.length; i++) {
+    if (!data.batterStats[i]) {
+        yetHTML += `<li>${data.battingPlayers[i]}</li>`;
+    }
+}
+yetHTML += "</ul>";
+document.getElementById("yet-to-bat").innerHTML =
+"<h3>Yet To Bat</h3>" + yetHTML;
+
+
+// bowling scorecard
+    let bowlingHTML = `
+    <table border="1" width="100%">
+    <tr>
+        <th>Bowler</th>
+        <th>Overs</th>
+        <th>Runs</th>
+        <th>Wickets</th>
+        <th>Economy</th>
+    </tr>
+    `;
+    for (const index in data.bowlerStats) {
+        const bowler = data.bowlerStats[index];
+        const eco =
+            bowler.balls > 0
+                ? (bowler.runs / (bowler.balls / 6)).toFixed(2)
+                : "0.00";
+        bowlingHTML += `
+        <tr>
+            <td>${data.bowlingPlayers[index]}</td>
+            <td>${Math.floor(bowler.balls / 6)}.${bowler.balls % 6}</td>
+            <td>${bowler.runs}</td>
+            <td>${bowler.wickets}</td>
+            <td>${eco}</td>
+        </tr>
+        `;
+    }
+    bowlingHTML += "</table>";
+    document.getElementById("bowling-scorecard").innerHTML =
+        "<h3>Bowling Scorecard</h3>" + bowlingHTML;
+
+        updateLiveScreen(data);
+};
+
+</script>
 
 </body>
 </html>

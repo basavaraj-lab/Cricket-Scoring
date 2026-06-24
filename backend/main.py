@@ -7,6 +7,10 @@ from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconn
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from auth import create_access_token, verify_password, get_current_user
+
+user_templates = Jinja2Templates(directory="templates-user")
+admin_templates = Jinja2Templates(directory="templates-admin")
 
 # Setup paths
 sys.path.insert(0, os.path.dirname(__file__))
@@ -23,9 +27,24 @@ from smtp_service import send_email
 from otp_store import otp_store
 from auth import create_access_token
 
+
 app = FastAPI()
 
+
 # Mount static files
+
+from fastapi import Request
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print("===================================")
+    print("Request:", request.method, request.url.path)
+    print("Referer:", request.headers.get("referer"))
+    print("===================================")
+
+    response = await call_next(request)
+    return response
+
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Template engines
@@ -132,6 +151,15 @@ async def api_delete_match(match_id: int):
     ok = delete_match(match_id)
     return JSONResponse({"deleted": ok})
 
+#admin login
+from fastapi import FastAPI, HTTPException, Depends
+import random
+
+from backend.smtp_service import send_email
+from otp_store import otp_store
+from auth import create_access_token, verify_password, get_current_user 
+
+# app = FastAPI()
 @app.post("/admin/send-otp")
 def send_admin_otp(email: str):
     otp = random.randint(100000, 999999)
@@ -152,6 +180,155 @@ def verify_admin_otp(email: str, otp: int):
     token = create_access_token({"sub": email})
     del otp_store[email]
     return {"message": "OTP verified successfully", "token": token}
+
+#websocket
+from fastapi import WebSocket, WebSocketDisconnect
+connected_clients = []
+
+@app.websocket("/ws/score")
+async def websocket_score(websocket: WebSocket):
+    await websocket.accept()
+    connected_clients.append(websocket)
+
+    print("User Connected")
+
+    try:
+        while True:
+            await websocket.receive_text()
+
+    except WebSocketDisconnect:
+        connected_clients.remove(websocket)
+        print("User Disconnected")
+
+        from fastapi import Body
+
+# current_score = {
+#     "runs": 0,
+#     "wickets": 0,
+#     "overs": "0.0"
+# }
+
+from fastapi import FastAPI, Request, Body, WebSocket, WebSocketDisconnect
+@app.post("/api/update-score")
+async def update_score(score: dict = Body(...)):
+    global current_score
+    current_score = score
+    for client in connected_clients:
+        await client.send_json(current_score)
+    return {
+        "message": "Score Updated",
+        "score": current_score
+    }
+# current_score = {}
+
+from fastapi import Body
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+current_score = {
+    "runs": 0,
+    "wickets": 0,
+    "overs": "0.0"
+} 
+current_match = {
+    "team1": "",
+    "team2": "",
+    "venue": "",
+    "date": ""
+}
+
+@app.post("/api/update-score")
+async def update_score(score: dict = Body(...)):
+    global current_score
+    global current_match
+    # current_score = score
+
+    current_score = score
+    current_match = score.get("match", {})
+
+    print("Received from Admin:", current_score)
+    print("Connected Clients:", len(connected_clients))
+    print("Updated Score:", current_score)
+
+    for client in connected_clients:
+        await client.send_json(current_score)
+
+    return {"message": "Score Updated"}
+
+@app.post("/api/update-match")
+async def update_match(match: dict = Body(...)):
+    global current_match
+    current_match = match
+    return {"message": "Match Updated"}
+
+@app.get("/api/current-score")
+async def get_current_score():
+    return current_score
+
+@app.get("/api/match-details")
+async def get_match_details():
+    return JSONResponse({
+        "team1": current_match["team1"],
+        "team2": current_match["team2"],
+        "venue": current_match["venue"],
+        "date": current_match["date"]
+    })
+
+@app.get("/api/status")
+async def get_status():
+    return JSONResponse({
+        "status": "live",
+        "innings": "1st Innings"
+    })
+
+@app.get("/api/team-info")
+async def get_team_info():
+    return JSONResponse({
+        "team1": {
+            "name": current_match["team1"],
+            "players": ["Player1", "Player2", "Player3"]
+        },
+        "team2": {
+            "name": current_match["team2"],
+            "players": ["Player4", "Player5", "Player6"]
+        }
+    })
+
+from fastapi import Request
+
+# @app.middleware("http")
+# async def log_requests(request: Request, call_next):
+#     print("Request:", request.method, request.url.path)
+#     response = await call_next(request)
+#     return response
+
+@app.get("/user/home")
+async def home(request: Request):
+    return user_templates.TemplateResponse(
+        request=request,
+        name="index.html"
+    )
+
+@app.get("/user/match")
+async def matches(request: Request):
+    return user_templates.TemplateResponse(
+        request=request,
+        name="match.html"
+    )
+
+@app.get("/user/status")
+async def status(request: Request):
+    return user_templates.TemplateResponse(
+        request=request,
+        name="status.html"
+    )
+
+@app.get("/user/table")
+async def table(request: Request):
+    return user_templates.TemplateResponse(
+        request=request,
+        name="table.html"
+    )
 
 if __name__ == "__main__":
     import uvicorn

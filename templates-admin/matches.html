@@ -73,6 +73,8 @@ const playersA = JSON.parse(localStorage.getItem("PlayersA") || "[]");
 const playersB = JSON.parse(localStorage.getItem("PlayersB") || "[]");
 const pA = playersA.length ? playersA : Array.from({length:11},(_,i)=>`${teamA} P${i+1}`);
 const pB = playersB.length ? playersB : Array.from({length:11},(_,i)=>`${teamB} P${i+1}`);
+const matchDate = new Date().toLocaleDateString();
+const matchVenue = localStorage.getItem("Venue") || "KVG Cricket Ground";
 
 let tossWinner = null;
 let battingTeamName = "", bowlingTeamName = "";
@@ -102,25 +104,108 @@ function strikerSR() {
 
 function saveScorecard() {
     const data = {
-        teamA, teamB, innings,
-        battingTeamName, bowlingTeamName,
-        score, wickets, overs, balls,
-        battingPlayers, bowlingPlayers,
+        teamA,
+        teamB,
+
+        matchDate,
+        matchVenue,
+
+        innings,
+
+        battingTeamName,
+        bowlingTeamName,
+
+        score,
+        wickets,
+        overs,
+        balls,
+
+        battingPlayers,
+        bowlingPlayers,
+
         batterStats: JSON.parse(JSON.stringify(batterStats)),
-        bowlerStats:  JSON.parse(JSON.stringify(bowlerStats)),
-        strikerIdx, nonStrikerIdx, bowlerIdx,
+        bowlerStats: JSON.parse(JSON.stringify(bowlerStats)),
+
+        strikerIdx,
+        nonStrikerIdx,
+        bowlerIdx,
+
         firstInningsScore,
+
         inn1BatterStats: JSON.parse(JSON.stringify(inn1BatterStats)),
-        inn1BowlerStats:  JSON.parse(JSON.stringify(inn1BowlerStats)),
-        inn1BattingTeam, inn1BowlingTeam,
+        inn1BowlerStats: JSON.parse(JSON.stringify(inn1BowlerStats)),
+
+        inn1BattingTeam,
+        inn1BowlingTeam,
+
         inn1BattingPlayers: [...inn1BattingPlayers],
         inn1BowlingPlayers: [...inn1BowlingPlayers]
     };
     localStorage.setItem("scorecard", JSON.stringify(data));
     broadcastUpdate(data); // Send to WebSocket
 }
+function saveMatchToServer() {
+    const raw = localStorage.getItem("scorecard");
+    fetch("/api/save-match", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: raw
+    });
+}
 
-/* ── UI Logic ───────────────────────── */
+function stepMatchDetails() {
+
+    M.innerHTML = `
+    <h2>${teamA} VS ${teamB}</h2>
+    <hr>
+    <h3>🏏 Match Details</h3>
+    <p><b>Overs</b></p>
+    <select id="matchOvers">
+        <option value="2">2 Overs</option>
+        <option value="4">4 Overs</option>
+        <option value="5" selected>5 Overs</option>
+        <option value="10">10 Overs</option>
+        <option value="20">20 Overs</option>
+        <option value="50">50 Overs</option>
+    </select>
+    <br><br>
+    <p><b>Ground</b></p>
+    <input
+        type="text"
+        id="matchGround"
+        placeholder="Enter Ground Name"
+        value="KVG Cricket Ground">
+    <br><br>
+    <p><b>Date</b></p>
+    <input
+        type="date"
+        id="matchDate"
+        value="${new Date().toISOString().split("T")[0]}">
+    <br><br>
+    <button id="nextBtn">
+        Next →
+    </button>
+    `;
+    document.getElementById("nextBtn").onclick = function () {
+        localStorage.setItem(
+            "MatchOvers",
+            document.getElementById("matchOvers").value
+        );
+        localStorage.setItem(
+            "Venue",
+            document.getElementById("matchGround").value
+        );
+        localStorage.setItem(
+            "MatchDate",
+            document.getElementById("matchDate").value
+        );
+        stepToss();
+    };
+    
+}
+/* ── STEP 1 ─────────────────────────── */
 function stepMatchCard() {
     M.innerHTML = `
         <h2 style="color:var(--accent-gold)">Ready for Battle?</h2>
@@ -290,6 +375,12 @@ function addRuns(r) {
     overBalls.push(r === 0 ? "·" : r);
     if (r % 2 !== 0) swapStrike();
     checkOver(); updateScoreboard();
+    if (innings === 2 && score > firstInningsScore) {
+        checkOver(); updateScoreboard(); saveScorecard(); sendLiveScore();
+        stepMatchResult(); return;
+    }
+    checkOver(); updateScoreboard(); saveScorecard();
+    sendLiveScore();   // <-- ADD THIS
 }
 
 function addWicket(type) {
@@ -300,9 +391,14 @@ function addWicket(type) {
     const bw = bwl(bowlerIdx);
     bw.wickets++; bw.balls++;
     overBalls.push("W");
+
     checkOver(); updateScoreboard();
     if (wickets < 10) stepNextBatter();
     else endInnings();
+    checkOver(); updateScoreboard(); saveScorecard();
+    sendLiveScore();   // <-- ADD THIS
+    stepNextBatter();
+   
 }
 
 function addExtra(type) {
@@ -407,6 +503,53 @@ function saveState() { undoStack.push(snapshot()); }
 function snapshot() { return { score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx, overBalls: [...overBalls], batterStats: JSON.parse(JSON.stringify(batterStats)), bowlerStats: JSON.parse(JSON.stringify(bowlerStats)) }; }
 function undo() { if (undoStack.length) { restoreState(undoStack.pop()); stepScoring(); updateScoreboard(); } }
 function restoreState(s) { ({score, wickets, balls, overs, strikerIdx, nonStrikerIdx, bowlerIdx} = s); overBalls = [...s.overBalls]; batterStats = JSON.parse(JSON.stringify(s.batterStats)); bowlerStats = JSON.parse(JSON.stringify(s.bowlerStats)); }
+
+// const teamA = localStorage.getItem("TeamA") || "Team A";
+// const teamB = localStorage.getItem("TeamB") || "Team B";
+
+async function sendLiveScore() {
+
+    const liveScore = {
+        runs: score,
+        wickets: wickets,
+        overs: `${overs}.${balls % 6}`,
+        match: {
+            team1: teamA,
+            team2: teamB,
+            venue: "KVG Cricket Ground",
+            date: new Date().toLocaleDateString(),
+            status: "LIVE",
+            innings: innings
+        },
+       striker: {
+            name: battingPlayers[strikerIdx],
+            ...bs(strikerIdx),
+            strikeRate: strikerSR()
+        },
+        nonStriker: {
+            name: battingPlayers[nonStrikerIdx],
+            ...bs(nonStrikerIdx),
+            strikeRate: nonStrikerSR()
+        },
+        bowler: {
+            name: bowlingPlayers[bowlerIdx],
+            ...bwl(bowlerIdx)
+        },
+        batterStats: batterStats,
+        bowlerStats: bowlerStats,
+        battingPlayers: battingPlayers,
+        bowlingPlayers: bowlingPlayers
+    };
+    console.log("Sending:", liveScore);
+
+    await fetch("/api/update-score",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify(liveScore)
+    });
+}
 
 stepMatchCard();
 </script>
